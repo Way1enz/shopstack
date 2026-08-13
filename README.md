@@ -13,12 +13,12 @@ A small e-commerce backend built to get practice with microservices: Spring Boot
                                        │ registers with
         ┌──────────────────────────────┼─────────────────────────────────┐
         │                              │                                 │
-┌───────▼──────┐               ┌───────▼────────┐                ┌───────▼──────┐
-│ user-service │               │product-service │                │ cart-service │
-│   :8081      │               │    :8082       │                │   :8083      │
-│  (Postgres)  │               │ (Postgres+     │                │   (Redis     │
-│              │               │  Redis cache)  │                │  ONLY - no   │
-└──────────────┘               └────────▲───────┘                │  Postgres)   │
+┌───────▼──────┐               ┌───────▼───────┐                 ┌───────▼──────┐
+│ user-service │               │product-service│                 │ cart-service │
+│   :8081      │               │    :8082      │                 │   :8083      │
+│  (Postgres)  │               │ (Postgres+    │                 │   (Redis     │
+│              │               │  Redis cache) │                 │  ONLY - no   │
+└──────────────┘               └────────▲──────┘                 │  Postgres)   │
                                         │                        └──────▲───────┘
                                         │ Feign                         │ Feign
                                 ┌───────┴───────────────────────────────┘
@@ -32,11 +32,11 @@ A small e-commerce backend built to get practice with microservices: Spring Boot
                                        │  └────────────┬──────────────┘
                                        │               │ consumer group
                                        │               ▼
-                                       │  ┌───────────────────────────┐
-                                       │  │  notification-service     │
-                                       │  │  :8085 (no REST API -     │
-                                       │  │  background consumer)     │
-                                       │  └───────────────────────────┘
+                                       │  ┌──────────────────────────┐
+                                       │  │  notification-service    │
+                                       │  │  :8085 (no REST API -    │
+                                       │  │  background consumer)    │
+                                       │  └──────────────────────────┘
                                        │ all client traffic
                               ┌────────┴──────────┐
                               │   api-gateway     │  :8080  (single public entry point)
@@ -86,7 +86,7 @@ See [PROJECT_GUIDE.md](./PROJECT_GUIDE.md) for a file-by-file breakdown of every
 
 ## 4. Running with Docker (recommended)
 
-**Case where Postgres or Redis running locally**: There is no need to stop them or set anything up — the containers below are self-contained and use their own volumes. One thing worth knowing: Postgres is exposed to your host on port `5433`, not the default `5432`, so it won't collide with a local Postgres install. Services still talk to each other on the container's normal port `5432` internally — the remap only changes how you'd connect from your host machine (e.g. `psql -h localhost -p 5433`).
+**Case where Postgres or Redis is running locally**: there's no need to stop them or set anything up — the containers below are self-contained and use their own volumes. One thing worth knowing: Postgres is exposed to your host on port `5433`, not the default `5432`, so it won't collide with a local Postgres install. Services still talk to each other on the container's normal port `5432` internally — the remap only changes how you'd connect from your host machine (e.g. `psql -h localhost -p 5433`).
 
 From the project root:
 
@@ -151,8 +151,8 @@ docker compose up --build
 
 ## 6. Trying it out (end-to-end walkthrough)
 
-**For Postman or Similar Services:**
-- Import `postman/ShopStack.postman_collection.json` and `postman/ShopStack-Local.postman_environment.json` into Postman.
+**For Postman or similar tools:**
+- Import `postman/ShopStack.postman_collection.json` and `postman/ShopStack-Local.postman_environment.json` into Postman (or Insomnia/Bruno, which can both import Postman collections).
 - Pick the "ShopStack - Local" environment, run Auth → Register (or Login) once, and `{{token}}`/`{{refresh_token}}` get captured automatically — every other request already references them, and `{{product_id}}`/`{{order_id}}` fill in the same way after you create a product or check out.
 
 All requests below go through the gateway on `:8080`.
@@ -161,7 +161,7 @@ All requests below go through the gateway on `:8080`.
 ```bash
 curl -X POST http://localhost:8080/api/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"username":"alice","email":"alice@example.com","password":"password123"}'
+  -d '{"username":"alice","email":"alice@example.com","password":"Password123!"}'
 ```
 Response includes a JWT `token` (valid 15 minutes by default) and a `refreshToken` (valid 7 days, used to get a new access token without logging in again — see step 8). Save the access token:
 ```bash
@@ -201,9 +201,9 @@ curl http://localhost:8080/api/cart -H "Authorization: Bearer $TOKEN"
 curl -X POST http://localhost:8080/api/orders/checkout \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"shippingAddress":"123 Main St"}'
+  -d '{"shippingAddress":"123 Main St","paymentMethod":"CREDIT_CARD","cardNumber":"4111111111111111","cardHolderName":"Alice Smith","expiryMonth":"12","expiryYear":"30"}'
 ```
-Decrements stock in `product-service`, persists the order, and clears your cart. It also publishes an event to the `order-events` Redis Stream, which `notification-service` picks up a moment later:
+`paymentMethod` is required (`CREDIT_CARD`, `PAYPAL`, or `CASH`). The card number above is the standard Luhn-valid test number — any real card number works the same way through the same check. No real payment gateway is involved: authorization is simulated, and orders over $1000 (`payment.decline-above-amount`) deterministically decline with a `402` so that path is actually testable. Checkout decrements stock in `product-service`, validates/processes payment, persists the order, and clears your cart — if payment fails after stock was already reserved, that stock is automatically released back to `product-service`. It also publishes an event to the `order-events` Redis Stream, which `notification-service` picks up a moment later:
 ```bash
 docker compose logs -f notification-service
 ```
@@ -261,6 +261,8 @@ The access token still works until it naturally expires — it's stateless and c
 
 \* `/api/auth/refresh` and `/api/auth/logout` don't need a Bearer token — you're using them because your access token is gone or expired, so they take the refresh token in the body instead: `{ "refreshToken": "..." }`.
 
+`POST /api/orders/checkout` requires `paymentMethod` (`CREDIT_CARD`, `PAYPAL`, or `CASH`) in the body, plus the matching payment fields — see step 6 of the walkthrough above for a full example. No real payment gateway is involved; authorization is simulated.
+
 ---
 
 ## 8. Design notes
@@ -281,16 +283,22 @@ A few decisions worth explaining:
 
 **Multi-stage Docker builds.** Each service compiles inside a throwaway Maven container and ships only the final jar in a slim runtime image.
 
+**Payment is validated for real, even though no real gateway is involved.** Checkout requires a `paymentMethod` and, for credit cards, runs the actual Luhn checksum algorithm plus expiry-date and format checks before anything is charged. Stock is decremented *before* payment is attempted (so the total is known and the reservation exists), and if payment then fails or declines, every item already decremented gets restocked before the error is returned — the order is never created and the customer is never charged for something that didn't go through. Authorization itself is simulated: card payments deterministically decline above a configurable amount (`payment.decline-above-amount`, default $1000) so that failure path is actually reachable in testing rather than random.
+
+**Validation errors are reported all at once.** Every service's exception handler collects every failing field from a bad request instead of stopping at the first one, so a request with three problems doesn't take three separate round trips to fully diagnose.
+
 ### Why Redis Streams and not Kafka
 
-Redis Streams instead because it was already running and load-bearing for two other services, so there's no new infrastructure to stand up, and Spring Data Redis was already a dependency, so no new client library either. Its consumer groups (`XREADGROUP`/`XACK`, pending-entry tracking) give real at-least-once delivery with acknowledgment. Partition-based parallelism, log durability built for replaying events aren't things this project needs with one producer and one consumer.
+Kafka is the more commonly expected tool for the async notification flow, and would be a reasonable choice too. Redis Streams instead because it actually fit better here: Redis was already running and load-bearing for two other services, so there's no new infrastructure to stand up, and Spring Data Redis was already a dependency, so no new client library either. Its consumer groups (`XREADGROUP`/`XACK`, pending-entry tracking) give real at-least-once delivery with acknowledgment, not a toy version of it. Kafka's advantages — partition-based parallelism, log durability built for replaying events months later — aren't things this project needs with one producer and one consumer.
 
 ### Known gaps
 
-- Checkout uses a simple synchronous orchestration rather than a saga/outbox pattern, it is worth knowing if this ever needs to handle partial failures more gracefully.
-- There's no rate limiting, circuit breakers, or distributed tracing wired in yet. Only one refresh token is valid per user at a time — logging in on a new device kills the old session, which wouldn't fly if you wanted real multi-device support.
+- Checkout uses a simple synchronous orchestration rather than a saga/outbox pattern — fine at this scale, but worth knowing if this ever needs to handle partial failures more gracefully. The stock-decrement-then-restock-on-payment-failure sequence is a manual, best-effort version of what a saga pattern would formalize.
+- There's no rate limiting, circuit breakers, or distributed tracing wired in yet.
+- Only one refresh token is valid per user at a time — logging in on a new device kills the old session, which wouldn't fly if you wanted real multi-device support.
 - `notification-service` only logs a line instead of actually sending anything, though swapping that for a real integration wouldn't touch the reliability logic around it.
-- `PendingMessageRecoveryJob` only recovers this exact consumer's own backlog, a multi-replica deployment would need proper `XCLAIM`-based reclaim logic.
+- `PendingMessageRecoveryJob` only recovers this exact consumer's own backlog — fine with a single replica, but a multi-replica deployment would need proper `XCLAIM`-based reclaim logic too.
+- Restock calls made after a declined payment or a cancellation are themselves best-effort (logged on failure, not retried) — a genuinely bulletproof version would need the same kind of reliable-delivery mechanism `notification-service` uses for order events, not a plain synchronous Feign call.
 
 ---
 

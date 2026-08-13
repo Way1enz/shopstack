@@ -16,4 +16,8 @@ public interface ProductClient {
     /** Atomically decrements stock as part of checkout; internal service-to-service call. */
     @PostMapping("/api/products/{id}/decrement-stock")
     ProductDTO decrementStock(@PathVariable("id") Long id, @RequestParam("quantity") int quantity);
+
+    /** Releases previously-decremented stock - used when payment fails/declines after stock was reserved, and when cancelling a paid order. */
+    @PostMapping("/api/products/{id}/restock")
+    ProductDTO restock(@PathVariable("id") Long id, @RequestParam("quantity") int quantity);
 }

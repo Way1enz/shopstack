@@ -26,7 +26,7 @@
             "header": [ { "key": "Content-Type", "value": "application/json" } ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"alice\",\n  \"email\": \"alice@example.com\",\n  \"password\": \"password123\"\n}"
+              "raw": "{\n  \"username\": \"alice\",\n  \"email\": \"alice@example.com\",\n  \"password\": \"Password123!\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/api/auth/register",
@@ -66,7 +66,7 @@
             "header": [ { "key": "Content-Type", "value": "application/json" } ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"alice\",\n  \"password\": \"password123\"\n}"
+              "raw": "{\n  \"username\": \"alice\",\n  \"password\": \"Password123!\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/api/auth/login",
@@ -354,14 +354,14 @@
             "header": [ { "key": "Content-Type", "value": "application/json" } ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"shippingAddress\": \"123 Main St\"\n}"
+              "raw": "{\n  \"shippingAddress\": \"123 Main St\",\n  \"paymentMethod\": \"CREDIT_CARD\",\n  \"cardNumber\": \"4111111111111111\",\n  \"cardHolderName\": \"Alice Smith\",\n  \"expiryMonth\": \"12\",\n  \"expiryYear\": \"30\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/api/orders/checkout",
               "host": [ "{{base_url}}" ],
               "path": [ "api", "orders", "checkout" ]
             },
-            "description": "Requires items in the cart first. Auto-saves the returned order id into {{order_id}}. After this succeeds, run `docker compose logs -f notification-service` - within a second or two you'll see an 'Order confirmation ->' log line appear, published asynchronously via Redis Streams. This response doesn't wait on that at all."
+            "description": "Requires items in the cart first, and paymentMethod is now required (CREDIT_CARD, PAYPAL, or CASH). The card number above is the standard Luhn-valid test number (4111111111111111) - a real card number would work the same way. Orders over $1000 (payment.decline-above-amount) deterministically decline with a 402, so you can test that path by adding a higher-priced item. Auto-saves the returned order id into {{order_id}}. After this succeeds, run `docker compose logs -f notification-service` - within a second or two you'll see an 'Order confirmation ->' log line appear, published asynchronously via Redis Streams. This response doesn't wait on that at all."
           },
           "event": [
             {

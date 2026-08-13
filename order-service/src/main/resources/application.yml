@@ -25,6 +25,12 @@ eureka:
   instance:
     prefer-ip-address: true
 
+payment:
+  # Simulated credit card authorization decline threshold - no real payment
+  # gateway is involved. Orders above this amount deterministically decline,
+  # so the failure path is actually testable rather than random.
+  decline-above-amount: ${PAYMENT_DECLINE_ABOVE_AMOUNT:1000.00}
+
 management:
   endpoints:
     web:

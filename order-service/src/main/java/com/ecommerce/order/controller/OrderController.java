@@ -4,6 +4,7 @@ import com.ecommerce.order.dto.CheckoutRequest;
 import com.ecommerce.order.dto.OrderResponse;
 import com.ecommerce.order.entity.Order;
 import com.ecommerce.order.service.OrderService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,9 +23,8 @@ public class OrderController {
 
     @PostMapping("/checkout")
     public ResponseEntity<OrderResponse> checkout(@RequestHeader("X-User-Id") Long userId,
-                                                    @RequestBody(required = false) CheckoutRequest request) {
-        String address = request != null ? request.shippingAddress() : null;
-        Order order = orderService.checkout(userId, address);
+                                                    @Valid @RequestBody CheckoutRequest request) {
+        Order order = orderService.checkout(userId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(OrderResponse.from(order));
     }
 

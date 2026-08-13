@@ -145,6 +145,7 @@ services:
       DB_PASSWORD: ecommerce
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      PAYMENT_DECLINE_ABOVE_AMOUNT: ${PAYMENT_DECLINE_ABOVE_AMOUNT:-1000.00}
     depends_on:
       postgres:
         condition: service_healthy

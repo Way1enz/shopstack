@@ -57,4 +57,11 @@ public class ProductController {
     public ProductResponse decrementStock(@PathVariable Long id, @RequestParam int quantity) {
         return ProductResponse.from(productService.decrementStock(id, quantity));
     }
+
+    // Internal only - called by order-service when a payment declines after stock was
+    // already reserved, or when cancelling a paid order.
+    @PostMapping("/{id}/restock")
+    public ProductResponse restock(@PathVariable Long id, @RequestParam int quantity) {
+        return ProductResponse.from(productService.restock(id, quantity));
+    }
 }

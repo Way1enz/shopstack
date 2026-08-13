@@ -11,11 +11,8 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Date;
 
-/**
- * Issues signed JWT access tokens after a successful login/registration.
- * The gateway holds the same secret and verifies tokens with it - see
- * api-gateway's JwtValidator.
- */
+// Issues signed access tokens after login/registration - the gateway holds the same secret
+// and verifies with it (see api-gateway's JwtValidator).
 @Component
 public class JwtUtil {
 

@@ -13,6 +13,7 @@ public record OrderResponse(
         BigDecimal totalAmount,
         OrderStatus status,
         String shippingAddress,
+        String paymentSummary,
         List<OrderItemResponse> items,
         Instant createdAt
 ) {
@@ -23,6 +24,7 @@ public record OrderResponse(
                 order.getTotalAmount(),
                 order.getStatus(),
                 order.getShippingAddress(),
+                order.getPaymentSummary(),
                 order.getItems().stream().map(OrderItemResponse::from).toList(),
                 order.getCreatedAt()
         );

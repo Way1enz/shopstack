@@ -34,6 +34,9 @@ public class Order {
 
     private String shippingAddress;
 
+    /** Human-readable payment summary, e.g. "Credit card ending 1111" - see PaymentService. */
+    private String paymentSummary;
+
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @Builder.Default
     private List<OrderItem> items = new ArrayList<>();

@@ -85,4 +85,14 @@ public class ProductService {
         product.setStockQuantity(product.getStockQuantity() - quantity);
         return productRepository.save(product);
     }
+
+    // Releases stock reserved via decrementStock() - either payment declined after
+    // reservation, or a paid order got cancelled. Called by order-service.
+    @Transactional
+    @CacheEvict(cacheNames = "products", key = "#id")
+    public Product restock(Long id, int quantity) {
+        Product product = getById(id);
+        product.setStockQuantity(product.getStockQuantity() + quantity);
+        return productRepository.save(product);
+    }
 }
