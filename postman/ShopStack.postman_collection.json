@@ -1,0 +1,418 @@
+{
+  "info": {
+    "_postman_id": "b6e2f1e0-1a2b-4c3d-9e0f-shopstack0001",
+    "name": "ShopStack E-Commerce API",
+    "description": "Full API walkthrough for the ShopStack microservices capstone project. Requests that return a JWT (Register/Login) automatically save it into the {{token}} environment variable via a Tests script, and every other protected request uses {{token}} automatically - no manual copy/paste needed. Product creation and checkout similarly auto-capture {{product_id}} and {{order_id}} for the requests below them.\n\nUsage: import both this collection and ShopStack-Local.postman_environment.json, select the \"ShopStack - Local\" environment in the top-right dropdown, then run Register (or Login) once before anything else.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{token}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8080", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"alice\",\n  \"email\": \"alice@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/register",
+              "host": [ "{{base_url}}" ],
+              "path": [ "api", "auth", "register" ]
+            },
+            "description": "Creates a new account and returns a JWT. Run this first (or Login, if the account already exists)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (data.token) {",
+                  "    pm.environment.set('token', data.token);",
+                  "    console.log('Saved token to {{token}}');",
+                  "}",
+                  "if (data.refreshToken) {",
+                  "    pm.environment.set('refresh_token', data.refreshToken);",
+                  "    console.log('Saved refresh_token to {{refresh_token}}');",
+                  "}",
+                  "if (data.userId) {",
+                  "    pm.environment.set('user_id', data.userId);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"alice\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": [ "{{base_url}}" ],
+              "path": [ "api", "auth", "login" ]
+            },
+            "description": "Use this instead of Register once you already have an account - refreshes {{token}} the same way."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (data.token) {",
+                  "    pm.environment.set('token', data.token);",
+                  "    console.log('Saved token to {{token}}');",
+                  "}",
+                  "if (data.refreshToken) {",
+                  "    pm.environment.set('refresh_token', data.refreshToken);",
+                  "    console.log('Saved refresh_token to {{refresh_token}}');",
+                  "}",
+                  "if (data.userId) {",
+                  "    pm.environment.set('user_id', data.userId);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refresh_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/refresh",
+              "host": [ "{{base_url}}" ],
+              "path": [ "api", "auth", "refresh" ]
+            },
+            "description": "Exchanges the current refresh token for a new access token AND a new (rotated) refresh token. Use this once your access token expires (15 min by default) instead of logging in again. The old refresh token stops working the moment this succeeds."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (data.token) {",
+                  "    pm.environment.set('token', data.token);",
+                  "    console.log('Refreshed token');",
+                  "}",
+                  "if (data.refreshToken) {",
+                  "    pm.environment.set('refresh_token', data.refreshToken);",
+                  "    console.log('Rotated refresh_token');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refresh_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/logout",
+              "host": [ "{{base_url}}" ],
+              "path": [ "api", "auth", "logout" ]
+            },
+            "description": "Revokes the refresh token server-side. The current access token still works until it naturally expires (it's stateless and can't be revoked), but no new access tokens can be issued from this refresh token anymore."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get My Profile",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/users/me",
+              "host": [ "{{base_url}}" ],
+              "path": [ "api", "users", "me" ]
+            }
+          }
+        },
+        {
+          "name": "Get User By Id",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/users/{{user_id}}",
+              "host": [ "{{base_url}}" ],
+              "path": [ "api", "users", "{{user_id}}" ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "List Products",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/products?page=0&size=20",
+              "host": [ "{{base_url}}" ],
+              "path": [ "api", "products" ],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            },
+            "description": "Public - no token required, though sending one doesn't hurt."
+          }
+        },
+        {
+          "name": "Get Product By Id",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/products/{{product_id}}",
+              "host": [ "{{base_url}}" ],
+              "path": [ "api", "products", "{{product_id}}" ]
+            }
+          }
+        },
+        {
+          "name": "Create Product",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Keyboard\",\n  \"description\": \"Mechanical\",\n  \"price\": 89.99,\n  \"stockQuantity\": 25,\n  \"category\": \"Electronics\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/products",
+              "host": [ "{{base_url}}" ],
+              "path": [ "api", "products" ]
+            },
+            "description": "Protected - requires {{token}}. Auto-saves the returned id into {{product_id}} for the requests below."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (data.id) {",
+                  "    pm.environment.set('product_id', data.id);",
+                  "    console.log('Saved product_id = ' + data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Product",
+          "request": {
+            "method": "PUT",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Keyboard (updated)\",\n  \"description\": \"Mechanical, hot-swappable\",\n  \"price\": 79.99,\n  \"stockQuantity\": 30,\n  \"category\": \"Electronics\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/products/{{product_id}}",
+              "host": [ "{{base_url}}" ],
+              "path": [ "api", "products", "{{product_id}}" ]
+            }
+          }
+        },
+        {
+          "name": "Delete Product",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/api/products/{{product_id}}",
+              "host": [ "{{base_url}}" ],
+              "path": [ "api", "products", "{{product_id}}" ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cart",
+      "item": [
+        {
+          "name": "Get Cart",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/cart",
+              "host": [ "{{base_url}}" ],
+              "path": [ "api", "cart" ]
+            }
+          }
+        },
+        {
+          "name": "Add Item To Cart",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": {{product_id}},\n  \"quantity\": 2\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/cart/items",
+              "host": [ "{{base_url}}" ],
+              "path": [ "api", "cart", "items" ]
+            },
+            "description": "Uses {{product_id}} auto-saved by \"Create Product\". Run that first, or set product_id manually in the environment."
+          }
+        },
+        {
+          "name": "Update Item Quantity",
+          "request": {
+            "method": "PUT",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": 3\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/cart/items/{{product_id}}",
+              "host": [ "{{base_url}}" ],
+              "path": [ "api", "cart", "items", "{{product_id}}" ]
+            }
+          }
+        },
+        {
+          "name": "Remove Item From Cart",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/api/cart/items/{{product_id}}",
+              "host": [ "{{base_url}}" ],
+              "path": [ "api", "cart", "items", "{{product_id}}" ]
+            }
+          }
+        },
+        {
+          "name": "Clear Cart",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/api/cart",
+              "host": [ "{{base_url}}" ],
+              "path": [ "api", "cart" ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Checkout",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shippingAddress\": \"123 Main St\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/orders/checkout",
+              "host": [ "{{base_url}}" ],
+              "path": [ "api", "orders", "checkout" ]
+            },
+            "description": "Requires items in the cart first. Auto-saves the returned order id into {{order_id}}. After this succeeds, run `docker compose logs -f notification-service` - within a second or two you'll see an 'Order confirmation ->' log line appear, published asynchronously via Redis Streams. This response doesn't wait on that at all."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (data.id) {",
+                  "    pm.environment.set('order_id', data.id);",
+                  "    console.log('Saved order_id = ' + data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List My Orders",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/orders",
+              "host": [ "{{base_url}}" ],
+              "path": [ "api", "orders" ]
+            }
+          }
+        },
+        {
+          "name": "Get Order By Id",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/orders/{{order_id}}",
+              "host": [ "{{base_url}}" ],
+              "path": [ "api", "orders", "{{order_id}}" ]
+            }
+          }
+        },
+        {
+          "name": "Cancel Order",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{base_url}}/api/orders/{{order_id}}/cancel",
+              "host": [ "{{base_url}}" ],
+              "path": [ "api", "orders", "{{order_id}}", "cancel" ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

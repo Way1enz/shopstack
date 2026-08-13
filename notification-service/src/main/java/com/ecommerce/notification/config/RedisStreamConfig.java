@@ -1,0 +1,70 @@
+package com.ecommerce.notification.config;
+
+import com.ecommerce.notification.listener.OrderEventListener;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.connection.stream.Consumer;
+import org.springframework.data.redis.connection.stream.MapRecord;
+import org.springframework.data.redis.connection.stream.ReadOffset;
+import org.springframework.data.redis.connection.stream.StreamOffset;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.dao.DataAccessException;
+import org.springframework.data.redis.stream.StreamMessageListenerContainer;
+
+import java.time.Duration;
+
+@Configuration
+public class RedisStreamConfig {
+
+    // Must match OrderEventPublisher.STREAM_KEY exactly.
+    public static final String STREAM_KEY = "order-events";
+
+    public static final String CONSUMER_GROUP = "notification-service-group";
+
+    // Fixed, not random/host-based - only one replica runs in this project, so a crashed
+    // container restarts as the same consumer and can recover its own pending backlog
+    // (see PendingMessageRecoveryJob). Multiple replicas would need unique names instead.
+    public static final String CONSUMER_NAME = "notification-consumer-1";
+
+    @Bean(destroyMethod = "stop")
+    public StreamMessageListenerContainer<String, MapRecord<String, String, String>> orderEventStreamContainer(
+            RedisConnectionFactory connectionFactory,
+            StringRedisTemplate redisTemplate,
+            OrderEventListener orderEventListener) {
+
+        ensureConsumerGroupExists(redisTemplate);
+
+        StreamMessageListenerContainer.StreamMessageListenerContainerOptions<String, MapRecord<String, String, String>> options =
+                StreamMessageListenerContainer.StreamMessageListenerContainerOptions.builder()
+                        .pollTimeout(Duration.ofSeconds(2))
+                        .build();
+
+        StreamMessageListenerContainer<String, MapRecord<String, String, String>> container =
+                StreamMessageListenerContainer.create(connectionFactory, options);
+
+        // Manual ack - onMessage() must call acknowledge() itself after processing succeeds.
+        container.receive(
+                Consumer.from(CONSUMER_GROUP, CONSUMER_NAME),
+                StreamOffset.create(STREAM_KEY, ReadOffset.lastConsumed()),
+                orderEventListener
+        );
+
+        container.start();
+        return container;
+    }
+
+    // XGROUP CREATE ... MKSTREAM equivalent, run on every startup so this service doesn't
+    // depend on order-service having published first. BUSYGROUP just means it already exists.
+    private void ensureConsumerGroupExists(StringRedisTemplate redisTemplate) {
+        try {
+            org.springframework.data.redis.core.StreamOperations<String, String, String> streamOps = redisTemplate.opsForStream();
+            streamOps.createGroup(STREAM_KEY, ReadOffset.from("0"), CONSUMER_GROUP);
+        } catch (DataAccessException e) {
+            boolean groupAlreadyExists = e.getMessage() != null && e.getMessage().contains("BUSYGROUP");
+            if (!groupAlreadyExists) {
+                throw e;
+            }
+        }
+    }
+}

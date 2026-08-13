@@ -1,0 +1,42 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: user-service
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:user_db}
+    username: ${DB_USER:ecommerce}
+    password: ${DB_PASSWORD:ecommerce}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
+  instance:
+    prefer-ip-address: true
+
+jwt:
+  secret: ${JWT_SECRET:change-this-super-secret-key-min-32-chars-long}
+  # Access tokens are intentionally short-lived (15 min default) since
+  # they're stateless and can't be revoked - if one leaks, it's only
+  # useful for a short window. Long-lived sessions are handled by the
+  # separate, revocable refresh token below instead.
+  expiration-ms: ${JWT_EXPIRATION_MS:900000}
+  # Refresh tokens are opaque DB-backed strings (see RefreshToken entity),
+  # default 7 days, and are rotated (replaced) on every use.
+  refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION_MS:604800000}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

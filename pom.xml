@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.ecommerce</groupId>
+    <artifactId>ecommerce-microservices</artifactId>
+    <version>1.0.0</version>
+    <packaging>pom</packaging>
+    <name>ecommerce-microservices</name>
+    <description>Capstone e-commerce microservices platform (Spring Boot + Redis + Eureka + Gateway)</description>
+
+    <modules>
+        <module>eureka-server</module>
+        <module>api-gateway</module>
+        <module>user-service</module>
+        <module>product-service</module>
+        <module>cart-service</module>
+        <module>order-service</module>
+        <module>notification-service</module>
+    </modules>
+
+    <properties>
+        <java.version>17</java.version>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <spring-boot.version>3.3.4</spring-boot.version>
+        <spring-cloud.version>2023.0.3</spring-cloud.version>
+        <jjwt.version>0.11.5</jjwt.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <!--
+                    Compile with -parameters so Spring MVC can resolve
+                    @RequestParam/@PathVariable argument names via reflection
+                    at runtime, even though most annotations in this project
+                    don't specify an explicit name (e.g. @RequestParam String
+                    category instead of @RequestParam("category") String
+                    category). Without this flag, those endpoints fail at
+                    request time with:
+                      "Name for argument of type [java.lang.String] not
+                       specified, and parameter name information not
+                       available via reflection."
+                    This applies to every module automatically, since the
+                    compiler plugin is bound to the default build lifecycle
+                    even when a module doesn't explicitly declare it.
+                -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <configuration>
+                        <parameters>true</parameters>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <version>${spring-boot.version}</version>
+                    <!--
+                        IMPORTANT: because this project does NOT inherit from
+                        spring-boot-starter-parent (we use our own multi-module
+                        parent above, importing only spring-boot-dependencies
+                        for version management), the "repackage" goal is not
+                        bound to the package phase automatically. Without this
+                        explicit execution, `mvn package` produces a plain jar
+                        with no Main-Class manifest entry, and the resulting
+                        jar fails at runtime with "no main manifest attribute".
+                        Every child module inherits this execution simply by
+                        declaring the plugin (without its own <executions>)
+                        in its <build><plugins> section.
+                    -->
+                    <executions>
+                        <execution>
+                            <id>repackage</id>
+                            <goals>
+                                <goal>repackage</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+</project>
