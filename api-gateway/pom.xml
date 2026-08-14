@@ -29,6 +29,14 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
+        <!-- Aggregates each service's OpenAPI docs into one Swagger UI at the gateway.
+             Webflux flavor, not webmvc, since Spring Cloud Gateway is reactive. -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
+            <version>${springdoc.version}</version>
+        </dependency>
+
         <!-- JWT validation -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>

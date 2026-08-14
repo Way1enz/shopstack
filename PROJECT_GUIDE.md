@@ -11,7 +11,7 @@ for.
 
 | File | Purpose |
 |---|---|
-| `pom.xml` | The Maven **parent/reactor** POM. Declares the 6 modules, and centralizes version management (Spring Boot, Spring Cloud, JJWT) via `<dependencyManagement>` so every service's `pom.xml` stays short and consistent. |
+| `pom.xml` | The Maven **parent/reactor** POM. Declares the 7 modules, and centralizes version management (Spring Boot, Spring Cloud, JJWT, springdoc-openapi) via `<dependencyManagement>` so every service's `pom.xml` stays short and consistent. |
 | `docker-compose.yml` | Orchestrates the whole platform: `postgres`, `redis`, and all 6 Spring Boot services, wired together on one Docker network with health-check-based startup ordering. |
 | `docker/postgres-init/init-databases.sql` | Runs automatically the first time the `postgres` container starts. Creates the three logical databases (`user_db`, `product_db`, `order_db`) that the JPA-based services need. |
 | `.gitignore` | Standard ignores for Maven build output, IDE files, logs, and local `.env` files. |
@@ -36,11 +36,11 @@ for.
 
 | File | Purpose |
 |---|---|
-| `pom.xml` | `spring-cloud-starter-gateway`, Eureka client, and JJWT (to validate tokens). |
+| `pom.xml` | `spring-cloud-starter-gateway`, Eureka client, JJWT (to validate tokens), and `springdoc-openapi-starter-webflux-ui` (the reactive flavor, matching Gateway's WebFlux stack) for the aggregated Swagger UI. |
 | `ApiGatewayApplication.java` | Plain Spring Boot bootstrap class. |
 | `security/JwtValidator.java` | Parses and verifies a JWT's signature/expiry using the shared `jwt.secret`. Returns the token's `Claims` if valid, `null` otherwise. |
 | `filter/AuthFilter.java` | A custom `GatewayFilterFactory` referenced in `application.yml` as `- AuthFilter` on protected routes. Reads the `Authorization` header, rejects with `401` if missing/invalid, and on success **replaces** it with trusted `X-User-Id` / `X-Username` headers before forwarding the request downstream. This means backend services never parse a JWT themselves — they just trust the header, because only the gateway can set it. |
-| `application.yml` | Defines every route: which path patterns go to which service (via Eureka's `lb://SERVICE-NAME` load-balanced URIs), and which routes get the `AuthFilter` applied (product **reads** are public, product **writes** and everything under `/api/cart` and `/api/orders` require a token). |
+| `application.yml` | Defines every route: which path patterns go to which service (via Eureka's `lb://SERVICE-NAME` load-balanced URIs), and which routes get the `AuthFilter` applied (product **reads** are public, product **writes** and everything under `/api/cart` and `/api/orders` require a token). Also defines four public `*-docs` routes that proxy each service's raw `/v3/api-docs` through the gateway (with a `RewritePath` filter stripping the service-name prefix), and a `springdoc.swagger-ui.urls` list tying all four into one aggregated Swagger UI at `/swagger-ui.html`. None of the docs machinery needs its own Gateway route beyond that — requests to `/swagger-ui.html` itself and its static assets don't match any route predicate, so Spring Cloud Gateway lets them fall through to the gateway's own local WebFlux handlers, which is where springdoc's UI actually lives. |
 | `Dockerfile` | Same multi-stage pattern as above. |
 
 ---
@@ -49,8 +49,9 @@ for.
 
 | File | Purpose |
 |---|---|
-| `pom.xml` | Web, JPA, Validation, Security (for `BCryptPasswordEncoder` only), Eureka client, Postgres driver, JJWT, Lombok. |
+| `pom.xml` | Web, JPA, Validation, Security (for `BCryptPasswordEncoder` only), Eureka client, Postgres driver, JJWT, `springdoc-openapi-starter-webmvc-ui` (Swagger/OpenAPI), Lombok. |
 | `UserServiceApplication.java` | Bootstrap class. |
+| `config/OpenApiConfig.java` | Sets the service's title/description in its generated OpenAPI spec, and registers a `bearerAuth` security scheme so the gateway's aggregated Swagger UI shows an "Authorize" button for this service's protected endpoints. Same pattern repeated in `product-service`, `cart-service`, and `order-service`. |
 | `entity/User.java` | JPA entity — `id`, `username`, `email`, hashed `password`, `role`, `createdAt`. |
 | `entity/RefreshToken.java` | JPA entity for the refresh token store — `token` (random UUID string, NOT a JWT), `user` (owner), `expiryDate`, `revoked`, `createdAt`. Unlike the stateless JWT access token, this one lives in Postgres, which is what makes it possible to actually revoke (see `/api/auth/logout`). |
 | `repository/UserRepository.java` | Spring Data JPA repository with `findByUsername`, `existsByUsername`, `existsByEmail`. |
@@ -73,8 +74,9 @@ for.
 
 | File | Purpose |
 |---|---|
-| `pom.xml` | Web, JPA, Validation, **Data Redis + Cache**, Eureka client, Postgres driver, Lombok. |
+| `pom.xml` | Web, JPA, Validation, **Data Redis + Cache**, Eureka client, Postgres driver, `springdoc-openapi-starter-webmvc-ui`, Lombok. |
 | `ProductServiceApplication.java` | `@EnableCaching` — turns on Spring's cache abstraction, backed by Redis (configured below). |
+| `config/OpenApiConfig.java` | Swagger/OpenAPI metadata + `bearerAuth` security scheme (see the same file in `user-service` for the full explanation). |
 | `entity/Product.java` | JPA entity — `name`, `description`, `price`, `stockQuantity`, `category`, `imageUrl`, timestamps. Implements `Serializable` since cached values pass through JSON serialization. |
 | `repository/ProductRepository.java` | Spring Data JPA repository with category/name search + built-in pagination support. |
 | `config/RedisConfig.java` | Defines the `CacheManager` bean: JSON serialization (via Jackson, so cached entries are human-readable in `redis-cli`), 10-minute TTL, null values not cached. |
@@ -91,8 +93,9 @@ for.
 
 | File | Purpose |
 |---|---|
-| `pom.xml` | Web, Validation, **Data Redis**, Eureka client, **OpenFeign** (to call product-service), Lombok. Notably **no** JPA/Postgres dependency — this service has no relational database at all. |
+| `pom.xml` | Web, Validation, **Data Redis**, Eureka client, **OpenFeign** (to call product-service), `springdoc-openapi-starter-webmvc-ui`, Lombok. Notably **no** JPA/Postgres dependency — this service has no relational database at all. |
 | `CartServiceApplication.java` | `@EnableFeignClients` so the `ProductClient` interface below gets a working implementation at startup. |
+| `config/OpenApiConfig.java` | Swagger/OpenAPI metadata + `bearerAuth` security scheme (see the same file in `user-service` for the full explanation). |
 | `model/CartItem.java`, `Cart.java` | Plain POJOs (not JPA entities) representing a cart and its line items. These are what get JSON-serialized into Redis. |
 | `config/RedisConfig.java` | Defines a `RedisTemplate<String, Cart>` bean: string keys, JSON values (via `GenericJackson2JsonRedisSerializer`). |
 | `repository/CartRepository.java` | Not a Spring Data repository — a thin, explicit wrapper around `RedisTemplate`. `findByUserId` / `save` / `deleteByUserId` operate on a single key `cart:{userId}`. `save` sets a TTL (`cart.ttl-hours`, default 72h) so abandoned carts expire on their own — no cleanup job needed. |
@@ -110,8 +113,9 @@ for.
 
 | File | Purpose |
 |---|---|
-| `pom.xml` | Web, JPA, Validation, Eureka client, **OpenFeign**, **Data Redis** (for stream publishing), Postgres driver, Lombok. |
+| `pom.xml` | Web, JPA, Validation, Eureka client, **OpenFeign**, **Data Redis** (for stream publishing), Postgres driver, `springdoc-openapi-starter-webmvc-ui`, Lombok. |
 | `OrderServiceApplication.java` | `@EnableFeignClients`. |
+| `config/OpenApiConfig.java` | Swagger/OpenAPI metadata + `bearerAuth` security scheme (see the same file in `user-service` for the full explanation). |
 | `entity/OrderStatus.java` | Enum: `CREATED`, `PAID`, `SHIPPED`, `CANCELLED`. Checkout now goes straight to `PAID` (payment is validated synchronously before an order is ever persisted — see `service/OrderService.java` below), so `CREATED` currently isn't reachable in practice; it's kept for a possible future async/pending-payment flow. |
 | `entity/Order.java`, `OrderItem.java` | JPA entities — an `Order` has a total, status, shipping address, a `paymentSummary` (e.g. `"Credit card ending 1111"`, set by `payment/PaymentService`), and a `@OneToMany` list of `OrderItem`s (each a frozen snapshot of product id/name/price/quantity at the time of purchase, independent of later catalog changes). |
 | `repository/OrderRepository.java` | Spring Data JPA repository, `findByUserIdOrderByCreatedAtDesc`. |

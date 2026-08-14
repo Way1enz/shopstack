@@ -4,6 +4,7 @@ import com.ecommerce.product.dto.ProductRequest;
 import com.ecommerce.product.dto.ProductResponse;
 import com.ecommerce.product.entity.Product;
 import com.ecommerce.product.service.ProductService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -12,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+@Tag(name = "Products", description = "Catalog browsing (public) and management (requires a Bearer token)")
 @RestController
 @RequestMapping("/api/products")
 @RequiredArgsConstructor

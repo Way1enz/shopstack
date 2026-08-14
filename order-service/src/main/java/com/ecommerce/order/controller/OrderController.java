@@ -4,6 +4,7 @@ import com.ecommerce.order.dto.CheckoutRequest;
 import com.ecommerce.order.dto.OrderResponse;
 import com.ecommerce.order.entity.Order;
 import com.ecommerce.order.service.OrderService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
  * All endpoints are reached only after the gateway's AuthFilter validates
  * the JWT and forwards the caller's id as X-User-Id.
  */
+@Tag(name = "Orders", description = "Checkout, order history, and cancellation - requires a Bearer token")
 @RestController
 @RequestMapping("/api/orders")
 @RequiredArgsConstructor

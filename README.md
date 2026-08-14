@@ -11,19 +11,19 @@ A small e-commerce backend built to get practice with microservices: Spring Boot
                               │  eureka-server   │  (service registry, :8761)
                               └────────▲─────────┘
                                        │ registers with
-        ┌──────────────────────────────┼─────────────────────────────────┐
-        │                              │                                 │
-┌───────▼──────┐               ┌───────▼───────┐                 ┌───────▼──────┐
-│ user-service │               │product-service│                 │ cart-service │
-│   :8081      │               │    :8082      │                 │   :8083      │
-│  (Postgres)  │               │ (Postgres+    │                 │   (Redis     │
-│              │               │  Redis cache) │                 │  ONLY - no   │
-└──────────────┘               └────────▲──────┘                 │  Postgres)   │
-                                        │                        └──────▲───────┘
-                                        │ Feign                         │ Feign
-                                ┌───────┴───────────────────────────────┘
-                                │        order-service :8084 (Postgres) │
-                                └───────────────┬───────────────────────┘
+        ┌──────────────────────────────┼───────────────────────────────┐
+        │                              │                               │
+┌───────▼──────┐               ┌───────▼───────┐               ┌───────▼──────┐
+│ user-service │               │product-service│               │ cart-service │
+│   :8081      │               │    :8082      │               │   :8083      │
+│  (Postgres)  │               │ (Postgres+    │               │   (Redis     │
+│              │               │  Redis cache) │               │  ONLY - no   │
+└──────────────┘               └──────▲────────┘               │  Postgres)   │
+                                      │                        └──────▲───────┘
+                                      │ Feign                         │ Feign
+                                ┌─────┴───────────────────────────────┘
+                                │    order-service :8084 (Postgres)   │
+                                └───────────────┬─────────────────────┘
                                        ▲        │ publishes (fire-and-forget)
                                        │        ▼
                                        │  ┌───────────────────────────┐
@@ -32,11 +32,11 @@ A small e-commerce backend built to get practice with microservices: Spring Boot
                                        │  └────────────┬──────────────┘
                                        │               │ consumer group
                                        │               ▼
-                                       │  ┌──────────────────────────┐
-                                       │  │  notification-service    │
-                                       │  │  :8085 (no REST API -    │
-                                       │  │  background consumer)    │
-                                       │  └──────────────────────────┘
+                                       │  ┌───────────────────────────┐
+                                       │  │  notification-service     │
+                                       │  │  :8085 (no REST API -     │
+                                       │  │  background consumer)     │
+                                       │  └───────────────────────────┘
                                        │ all client traffic
                               ┌────────┴──────────┐
                               │   api-gateway     │  :8080  (single public entry point)
@@ -105,6 +105,7 @@ First build takes a few minutes (Maven has to pull dependencies inside the build
 Once it's up:
 - Eureka dashboard: <http://localhost:8761> — confirm all 6 apps show as `UP`.
 - API entry point: <http://localhost:8080>
+- Interactive API docs: <http://localhost:8080/swagger-ui.html> — one Swagger UI covering all four REST services, switchable via a dropdown in the top-right. Docs themselves are public; use the "Authorize" button to paste a Bearer token so "Try it out" works against protected endpoints directly.
 
 Stop everything:
 ```bash
@@ -287,9 +288,11 @@ A few decisions worth explaining:
 
 **Validation errors are reported all at once.** Every service's exception handler collects every failing field from a bad request instead of stopping at the first one, so a request with three problems doesn't take three separate round trips to fully diagnose.
 
+**API docs are aggregated at the gateway, not scattered across four ports.** Each REST service generates its own OpenAPI spec via springdoc-openapi, but `user-service`, `product-service`, `cart-service`, and `order-service` aren't reachable from the host directly — only the gateway is. So the gateway proxies each service's raw `/v3/api-docs` through a public route and springdoc's Swagger UI aggregator ties them into one page with a dropdown, matching the "everything through the gateway" pattern used everywhere else in this project.
+
 ### Why Redis Streams and not Kafka
 
-Kafka is the more commonly expected tool for the async notification flow, and would be a reasonable choice too. Redis Streams instead because it actually fit better here: Redis was already running and load-bearing for two other services, so there's no new infrastructure to stand up, and Spring Data Redis was already a dependency, so no new client library either. Its consumer groups (`XREADGROUP`/`XACK`, pending-entry tracking) give real at-least-once delivery with acknowledgment, not a toy version of it. Kafka's advantages — partition-based parallelism, log durability built for replaying events months later — aren't things this project needs with one producer and one consumer.
+Kafka is the more commonly expected tool for the async notification flow, and would be a reasonable choice too. Redis Streams instead because it actually fit better here: Redis was already running and load-bearing for two other services, so there's no new infrastructure to stand up, and Spring Data Redis was already a dependency, so no new client library either. Its consumer groups (`XREADGROUP`/`XACK`, pending-entry tracking) give real at-least-once delivery with acknowledgment, not a toy version of it. Kafka's partition-based parallelism, log durability built for replaying events aren't things this project needs with one producer and one consumer.
 
 ### Known gaps
 

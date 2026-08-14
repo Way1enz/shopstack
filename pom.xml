@@ -29,6 +29,8 @@
         <spring-boot.version>3.3.4</spring-boot.version>
         <spring-cloud.version>2023.0.3</spring-cloud.version>
         <jjwt.version>0.11.5</jjwt.version>
+        <!-- Springdoc 3.x targets Spring Boot 4 - stay on the 2.x line for Spring Boot 3.x. -->
+        <springdoc.version>2.8.16</springdoc.version>
     </properties>
 
     <dependencyManagement>
