@@ -29,8 +29,15 @@
         <spring-boot.version>3.3.4</spring-boot.version>
         <spring-cloud.version>2023.0.3</spring-cloud.version>
         <jjwt.version>0.11.5</jjwt.version>
-        <!-- Springdoc 3.x targets Spring Boot 4 - stay on the 2.x line for Spring Boot 3.x. -->
-        <springdoc.version>2.8.16</springdoc.version>
+        <!-- Springdoc 3.x targets Spring Boot 4 - stay on the 2.x line. Also pinned to
+             2.8.3 specifically, not a later 2.8.x patch: springdoc quietly raised its own
+             minimum Spring Framework requirement partway through the 2.8.x line (needs a
+             class - LiteWebJarsResourceResolver - that doesn't exist until Spring
+             Framework 6.2 / Boot 3.4+), even though the whole 2.8.x series is nominally
+             "for Spring Boot 3.x." 2.8.3 is confirmed compatible with our exact Boot 3.3.x
+             generation (Spring Framework 6.1.x) - a newer 2.8.x patch throws
+             NoClassDefFoundError at startup on this Boot version. -->
+        <springdoc.version>2.8.3</springdoc.version>
     </properties>
 
     <dependencyManagement>
