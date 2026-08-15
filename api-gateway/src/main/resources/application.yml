@@ -56,38 +56,6 @@ spring:
           filters:
             - AuthFilter
 
-        # ---- OpenAPI docs - public, no AuthFilter. Each service's raw spec, proxied
-        # through the gateway so the aggregated Swagger UI below can fetch them without
-        # a CORS issue (same-origin through :8080) and without exposing each service's
-        # internal port to the host. ----
-        - id: user-service-docs
-          uri: lb://USER-SERVICE
-          predicates:
-            - Path=/user-service/v3/api-docs
-          filters:
-            - RewritePath=/user-service/v3/api-docs, /v3/api-docs
-
-        - id: product-service-docs
-          uri: lb://PRODUCT-SERVICE
-          predicates:
-            - Path=/product-service/v3/api-docs
-          filters:
-            - RewritePath=/product-service/v3/api-docs, /v3/api-docs
-
-        - id: cart-service-docs
-          uri: lb://CART-SERVICE
-          predicates:
-            - Path=/cart-service/v3/api-docs
-          filters:
-            - RewritePath=/cart-service/v3/api-docs, /v3/api-docs
-
-        - id: order-service-docs
-          uri: lb://ORDER-SERVICE
-          predicates:
-            - Path=/order-service/v3/api-docs
-          filters:
-            - RewritePath=/order-service/v3/api-docs, /v3/api-docs
-
 eureka:
   client:
     service-url:
@@ -97,21 +65,6 @@ eureka:
 
 jwt:
   secret: ${JWT_SECRET:change-this-super-secret-key-min-32-chars-long}
-
-# One Swagger UI at the gateway (http://localhost:8080/swagger-ui.html) aggregating all
-# four services via a dropdown, instead of four separate UIs on ports the host can't
-# even reach. Each URL below resolves through the docs routes just above.
-springdoc:
-  swagger-ui:
-    urls:
-      - name: User Service
-        url: /user-service/v3/api-docs
-      - name: Product Service
-        url: /product-service/v3/api-docs
-      - name: Cart Service
-        url: /cart-service/v3/api-docs
-      - name: Order Service
-        url: /order-service/v3/api-docs
 
 management:
   endpoints:
