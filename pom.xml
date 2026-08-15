@@ -67,12 +67,32 @@
                     This applies to every module automatically, since the
                     compiler plugin is bound to the default build lifecycle
                     even when a module doesn't explicitly declare it.
+
+                    Also explicitly declares Lombok as an annotation processor
+                    path. Without this, Lombok is normally auto-discovered from
+                    the classpath and "just works" - but that auto-discovery
+                    silently stops on some newer JDK/compiler-plugin
+                    combinations (a known, documented Lombok issue on Java 23+,
+                    for example), producing confusing "cannot find symbol:
+                    method builder()/getX()" errors for every @Builder/@Getter/
+                    @RequiredArgsConstructor class, since none of Lombok's
+                    generated code ever ran. Declaring the path explicitly
+                    makes annotation processing deterministic regardless of
+                    JDK version. No version is pinned here - it resolves
+                    through the same spring-boot-dependencies BOM import every
+                    child module's plain lombok <dependency> already relies on.
                 -->
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
                     <configuration>
                         <parameters>true</parameters>
+                        <annotationProcessorPaths>
+                            <path>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok</artifactId>
+                            </path>
+                        </annotationProcessorPaths>
                     </configuration>
                 </plugin>
                 <plugin>
