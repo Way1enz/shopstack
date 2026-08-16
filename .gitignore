@@ -22,3 +22,6 @@ Thumbs.db
 
 # Docker
 docker-data/
+
+# Local reference doc, not part of the public repo
+PROJECT_GUIDE.md

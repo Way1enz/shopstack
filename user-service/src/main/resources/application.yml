@@ -10,12 +10,24 @@ spring:
     password: ${DB_PASSWORD:ecommerce}
   jpa:
     hibernate:
-      ddl-auto: update
+      # Flyway now owns schema changes (see db/migration/) - Hibernate just confirms its
+      # entity mappings actually match the real schema at startup, failing fast with a clear
+      # error if they drift, rather than silently auto-modifying anything.
+      ddl-auto: validate
     show-sql: false
     properties:
       hibernate:
         format_sql: true
     open-in-view: false
+  flyway:
+    # baseline-on-migrate: this database already has tables (created by ddl-auto: update,
+    # before Flyway existed in this project). Without this, Flyway refuses to run against a
+    # non-empty schema it doesn't recognize. baseline-version: 1 tells it "treat V1 as already
+    # applied" for that existing data, WITHOUT re-running V1's CREATE TABLE statements against
+    # tables that already exist. A genuinely fresh database (e.g. after docker compose down -v)
+    # has no pre-existing schema to baseline, so Flyway just runs V1 normally there instead.
+    baseline-on-migrate: true
+    baseline-version: 1
 
 eureka:
   client:
