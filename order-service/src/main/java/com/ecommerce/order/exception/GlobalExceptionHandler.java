@@ -5,6 +5,7 @@ import feign.FeignException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -26,6 +27,16 @@ public class GlobalExceptionHandler {
         }
         return ResponseEntity.status(status)
                 .body(ErrorResponse.of(status.value(), "Downstream service error: " + ex.getMessage()));
+    }
+
+    // Without this, a missing required header (e.g. X-User-Id, which the gateway always sets
+    // on a normal request path) would fall through to the generic 500 handler below instead
+    // of the honest 400 it actually is - our own @RestControllerAdvice takes priority over
+    // Spring's built-in default handling for this exception, since it technically matches
+    // the Exception.class catch-all too.
+    @ExceptionHandler(MissingRequestHeaderException.class)
+    public ResponseEntity<ErrorResponse> handleMissingHeader(MissingRequestHeaderException ex) {
+        return ResponseEntity.badRequest().body(ErrorResponse.of(400, "Missing required header: " + ex.getHeaderName()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

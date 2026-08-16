@@ -66,6 +66,10 @@ for.
 | `exception/ApiException.java`, `GlobalExceptionHandler.java` | A small custom runtime exception carrying an HTTP status, plus a `@RestControllerAdvice` that turns it (and bean-validation failures) into consistent JSON error responses. |
 | `application.yml` | Port `8081`. Postgres connection to `user_db`. Eureka registration. `jwt.expiration-ms` (access token, 15 min default) and `jwt.refresh-expiration-ms` (refresh token, 7 days default) are separate settings. |
 | `Dockerfile` | Multi-stage build. |
+| `test/.../controller/AuthControllerTest.java` | `@WebMvcTest` — registration/login validation, status codes, with `UserService` mocked. Security filters disabled (`addFilters = false`) since this service's own filter chain is permissive by design; the gateway is what actually enforces auth. |
+| `test/.../service/RefreshTokenServiceTest.java`, `test/.../validation/StrongPasswordValidatorTest.java` | Mockito unit tests for token rotation/expiry/revocation and every password complexity rule individually, including verifying multiple simultaneous violations get reported in one message. |
+| `test/.../integration/AuthIntegrationTest.java` | Full Spring context + a real `postgres:16-alpine` Testcontainer (matching `docker-compose.yml`'s image) + MockMvc. Register → login round trip (including asserting the stored password is a real BCrypt hash, not plaintext), duplicate username → `409` against a real DB constraint, wrong password → `401`. |
+| `test/resources/docker-java.properties` | Pins the Testcontainers Docker API client version — works around a Docker 29+/Colima compatibility gap where the bundled `docker-java` client defaults to an API version the daemon rejects. Same file exists in all four services that use Testcontainers. |
 
 ---
 
@@ -84,6 +88,7 @@ for.
 | `exception/` | Same pattern as user-service. |
 | `application.yml` | Port `8082`. Postgres connection to `product_db`. Redis host/port. `spring.cache.type: redis`. |
 | `Dockerfile` | Multi-stage build. |
+| `test/.../integration/ProductIntegrationTest.java` | Full Spring context + real `postgres:16-alpine` **and** real `redis:7-alpine` Testcontainers together — this drives real writes through the `@Cacheable`/`@CacheEvict` path with real JSON serialization to Redis, which is exactly where two real bugs (Jackson not handling `java.time.Instant`) surfaced earlier in this project via manual testing. Covers create→cache-populate, update→cache-evict→fresh-read, delete→404, and validation. |
 
 ---
 
@@ -103,6 +108,7 @@ for.
 | `exception/` | Same pattern as the other services, plus a handler for `FeignException.NotFound` (product doesn't exist) mapped to a clean `404`. |
 | `application.yml` | Port `8083`. Redis host/port. Cart TTL. Eureka registration. |
 | `Dockerfile` | Multi-stage build. |
+| `test/.../integration/CartIntegrationTest.java` | Full Spring context + real `redis:7-alpine` Testcontainer — wired manually via `@DynamicPropertySource` rather than `@ServiceConnection`, since Redis isn't a first-class Testcontainers module the way Postgres is. `ProductClient` (Feign) mocked. Covers add/merge-quantity/remove/clear against real Redis reads, not just a single request's own response. |
 
 ---
 
@@ -127,6 +133,10 @@ for.
 | `exception/` | Same pattern, plus a `FeignException` handler that maps downstream service failures to a sensible status code (falls back to `502 Bad Gateway`). The validation handler reports every invalid field at once rather than just the first one. |
 | `application.yml` | Port `8084`. Postgres connection to `order_db`. Redis host/port (for stream publishing only — order-service has no cache and no Redis-backed data). Eureka registration. `payment.decline-above-amount` (default $1000, overridable via `PAYMENT_DECLINE_ABOVE_AMOUNT`). |
 | `Dockerfile` | Multi-stage build. |
+| `test/.../payment/PaymentServiceTest.java` | 15 unit tests covering every branch of the Luhn/expiry/format/decline logic — including the exactly-at-threshold boundary case and a dash-vs-space card number formatting edge case. |
+| `test/.../service/OrderServiceTest.java` | Mockito unit tests for the checkout-then-restock-on-payment-failure compensation logic (the core reliability guarantee this service provides), `cancel()`'s status guards, and ownership checks on `getById()` — including a test proving a failed restock call never masks the original payment error. |
+| `test/.../controller/OrderControllerTest.java` | `@WebMvcTest` — checkout validation, the missing-`X-User-Id`-header case, response shape, with `OrderService` mocked. |
+| `test/.../integration/OrderIntegrationTest.java` | Full Spring context + real `postgres:16-alpine` Testcontainer for actual order persistence, with `CartClient`/`ProductClient` mocked (each gets its own integration test elsewhere, not re-tested here). Verifies a declined payment leaves zero rows in the database, and that checkout still succeeds with no Redis available — proving `OrderEventPublisher`'s fire-and-forget try/catch actually works, not just in theory. |
 
 ---
 

@@ -13,32 +13,32 @@ A small e-commerce backend built to get practice with microservices: Spring Boot
                                        │ registers with
         ┌──────────────────────────────┼───────────────────────────────┐
         │                              │                               │
-┌───────▼──────┐               ┌───────▼──────┐                ┌───────▼──────┐
+┌───────▼──────┐               ┌───────▼───────┐               ┌───────▼──────┐
 │ user-service │               │product-service│               │ cart-service │
-│   :8081      │               │    :8082      │                │   :8083      │
-│  (Postgres)  │               │ (Postgres+     │                │   (Redis     │
-│              │               │  Redis cache)  │                │  ONLY - no   │
-└──────────────┘               └───────▲───────┘                │  Postgres)   │
-                                        │                        └──────▲───────┘
-                                        │ Feign                         │ Feign
-                                ┌───────┴────────────────────────────────┘
-                                │        order-service :8084 (Postgres)
-                                └───────────────┬────────────────────────
+│   :8081      │               │    :8082      │               │   :8083      │
+│  (Postgres)  │               │ (Postgres+    │               │   (Redis     │
+│              │               │  Redis cache) │               │  ONLY - no   │
+└──────────────┘               └────────▲──────┘               │  Postgres)   │
+                                        │                      └──────▲───────┘
+                                        │ Feign                       │ Feign
+                                ┌───────┴─────────────────────────────┘
+                                │     order-service :8084 (Postgres)  │
+                                └───────────────┬─────────────────────┘
                                        ▲        │ publishes (fire-and-forget)
                                        │        ▼
-                                       │  ┌──────────────────────────┐
+                                       │  ┌───────────────────────────┐
                                        │  │  Redis Stream:            │
                                        │  │  "order-events"           │
                                        │  └────────────┬──────────────┘
                                        │               │ consumer group
                                        │               ▼
                                        │  ┌──────────────────────────┐
-                                       │  │  notification-service     │
-                                       │  │  :8085 (no REST API -     │
-                                       │  │  background consumer)     │
+                                       │  │  notification-service    │
+                                       │  │  :8085 (no REST API -    │
+                                       │  │  background consumer)    │
                                        │  └──────────────────────────┘
                                        │ all client traffic
-                              ┌────────┴─────────┐
+                              ┌────────┴──────────┐
                               │   api-gateway     │  :8080  (single public entry point)
                               └────────▲──────────┘
                                        │
@@ -151,7 +151,43 @@ docker compose up --build
 
 ---
 
-## 6. Trying it out (end-to-end walkthrough)
+## 6. Running the tests
+
+The project has two kinds of automated tests, and they need different things from your environment.
+
+**Unit tests** (`PaymentServiceTest`, `OrderServiceTest`, `RefreshTokenServiceTest`, `StrongPasswordValidatorTest`, and the `@WebMvcTest` controller tests) don't touch Docker at all — pure logic with Mockito, or the HTTP layer with a mocked service underneath. Fast, no external dependencies.
+
+**Integration tests** (`AuthIntegrationTest`, `ProductIntegrationTest`, `OrderIntegrationTest`, `CartIntegrationTest`) use [Testcontainers](https://testcontainers.com/) to spin up real Postgres and/or Redis containers for the duration of the test run — no mocking of the actual database or cache layer. `ProductIntegrationTest` in particular drives real writes through the `@Cacheable`/`@CacheEvict` path with real JSON serialization to Redis, since that's exactly where two real bugs surfaced earlier in this project.
+
+Run everything with:
+
+```bash
+mvn test
+```
+
+If you're running Maven locally and hit Lombok errors (`cannot find symbol: method builder()`/`getX()` on every `@Builder`/`@Getter` class) — this happens when your local JDK is newer than what Lombok's annotation-processor hooks were built against (a known issue on newer JDKs). The project already works around one layer of this (`annotationProcessorPaths` explicitly declared in the root `pom.xml`), but if your JDK is different enough from the Java 17 this project targets, the cleanest fix is running Maven itself inside a container that matches:
+
+```bash
+docker run --rm \
+  -v "$(pwd)":/workspace \
+  -v "$HOME/.m2":/root/.m2 \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -e DOCKER_HOST=unix:///var/run/docker.sock \
+  -w /workspace \
+  maven:3.9-eclipse-temurin-17 \
+  mvn test
+```
+
+The `docker.sock` mount is only needed for the integration tests — Testcontainers needs to reach your host's Docker daemon to actually start the Postgres/Redis containers it uses. If you're on Colima (or another non-Docker-Desktop setup) and see `client version X is too old`, that's a known Testcontainers/Docker-29+ compatibility gap — every service's `src/test/resources/docker-java.properties` already pins a working API version to work around it.
+
+Run a single service's tests instead of everything:
+```bash
+mvn test -pl user-service -am
+```
+
+---
+
+## 7. Trying it out (end-to-end walkthrough)
 
 **For Postman or similar tools:**
 - Import `postman/ShopStack.postman_collection.json` and `postman/ShopStack-Local.postman_environment.json` into Postman (or Insomnia/Bruno, which can both import Postman collections).
@@ -234,7 +270,7 @@ The access token still works until it naturally expires — it's stateless and c
 
 ---
 
-## 7. API summary
+## 8. API summary
 
 | Method | Path                              | Auth required | Service          |
 |--------|-------------------------------------|:--------------:|-------------------|
@@ -267,7 +303,7 @@ The access token still works until it naturally expires — it's stateless and c
 
 ---
 
-## 8. Design notes
+## 9. Design notes
 
 A few decisions worth explaining:
 
@@ -304,7 +340,7 @@ Kafka is the more commonly expected tool for the async notification flow, and wo
 
 ---
 
-## 9. Project layout
+## 10. Project layout
 
 ```
 ecommerce-microservices/

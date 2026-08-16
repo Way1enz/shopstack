@@ -4,6 +4,7 @@ import com.ecommerce.user.dto.ErrorResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -16,6 +17,13 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleApiException(ApiException ex) {
         return ResponseEntity.status(ex.getStatus())
                 .body(ErrorResponse.of(ex.getStatus().value(), ex.getMessage()));
+    }
+
+    // Without this, a missing required header (e.g. X-User-Id) would fall through to the
+    // generic 500 handler below instead of the honest 400 it actually is.
+    @ExceptionHandler(MissingRequestHeaderException.class)
+    public ResponseEntity<ErrorResponse> handleMissingHeader(MissingRequestHeaderException ex) {
+        return ResponseEntity.badRequest().body(ErrorResponse.of(400, "Missing required header: " + ex.getHeaderName()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
