@@ -45,11 +45,8 @@
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
         </dependency>
-        <!-- Version resolved via spring-boot-dependencies, same as the Postgres driver above -
-             unlike springdoc, Flyway's Spring Boot integration is officially built and tested
-             by the Spring Boot team itself for each Boot release, not a third-party project
-             that might silently raise its own minimum Boot requirement. Flyway 10+ split
-             Postgres-specific support into its own artifact, so both are needed. -->
+        <!-- Officially built/tested by Spring Boot for each release, unlike springdoc - no
+             explicit version needed. Flyway 10+ split Postgres support into its own artifact. -->
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>

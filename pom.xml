@@ -53,35 +53,10 @@
     <build>
         <pluginManagement>
             <plugins>
-                <!--
-                    Compile with -parameters so Spring MVC can resolve
-                    @RequestParam/@PathVariable argument names via reflection
-                    at runtime, even though most annotations in this project
-                    don't specify an explicit name (e.g. @RequestParam String
-                    category instead of @RequestParam("category") String
-                    category). Without this flag, those endpoints fail at
-                    request time with:
-                      "Name for argument of type [java.lang.String] not
-                       specified, and parameter name information not
-                       available via reflection."
-                    This applies to every module automatically, since the
-                    compiler plugin is bound to the default build lifecycle
-                    even when a module doesn't explicitly declare it.
-
-                    Also explicitly declares Lombok as an annotation processor
-                    path. Without this, Lombok is normally auto-discovered from
-                    the classpath and "just works" - but that auto-discovery
-                    silently stops on some newer JDK/compiler-plugin
-                    combinations (a known, documented Lombok issue on Java 23+,
-                    for example), producing confusing "cannot find symbol:
-                    method builder()/getX()" errors for every @Builder/@Getter/
-                    @RequiredArgsConstructor class, since none of Lombok's
-                    generated code ever ran. Declaring the path explicitly
-                    makes annotation processing deterministic regardless of
-                    JDK version. No version is pinned here - it resolves
-                    through the same spring-boot-dependencies BOM import every
-                    child module's plain lombok <dependency> already relies on.
-                -->
+                <!-- -parameters: lets Spring MVC resolve @RequestParam/@PathVariable names via
+                     reflection without needing an explicit name on every annotation. Also pins
+                     Lombok as an annotation processor path - without it, Lombok's classpath
+                     auto-discovery silently breaks on some newer JDK/compiler-plugin combos. -->
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
@@ -99,19 +74,10 @@
                     <groupId>org.springframework.boot</groupId>
                     <artifactId>spring-boot-maven-plugin</artifactId>
                     <version>${spring-boot.version}</version>
-                    <!--
-                        IMPORTANT: because this project does NOT inherit from
-                        spring-boot-starter-parent (we use our own multi-module
-                        parent above, importing only spring-boot-dependencies
-                        for version management), the "repackage" goal is not
-                        bound to the package phase automatically. Without this
-                        explicit execution, `mvn package` produces a plain jar
-                        with no Main-Class manifest entry, and the resulting
-                        jar fails at runtime with "no main manifest attribute".
-                        Every child module inherits this execution simply by
-                        declaring the plugin (without its own <executions>)
-                        in its <build><plugins> section.
-                    -->
+                    <!-- Without this, "repackage" isn't bound to the package phase (we don't
+                         inherit spring-boot-starter-parent), so `mvn package` produces a plain
+                         jar with no Main-Class and fails at runtime with "no main manifest
+                         attribute". Every child module inherits this by declaring the plugin. -->
                     <executions>
                         <execution>
                             <id>repackage</id>

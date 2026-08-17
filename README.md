@@ -1,6 +1,6 @@
 # ShopStack
 
-Small e-commerce backend built to practice microservices — Spring Boot, Spring Cloud (Eureka, Gateway, OpenFeign), Redis, Postgres, Docker.
+A backend microservices project simulating an e-commerce application.
 
 ## Starting services with Docker
 
@@ -33,7 +33,7 @@ For Postman (or Insomnia/Bruno), import `postman/ShopStack.postman_collection.js
 
 ```
                               ┌──────────────────┐
-                              │  eureka-server   │  (service registry, :8761)
+                              │  eureka-server   │  :8761 (service registry)
                               └────────▲─────────┘
                                        │ registers with
         ┌──────────────────────────────┼───────────────────────────────┐
@@ -41,9 +41,9 @@ For Postman (or Insomnia/Bruno), import `postman/ShopStack.postman_collection.js
 ┌───────▼──────┐               ┌───────▼───────┐               ┌───────▼──────┐
 │ user-service │               │product-service│               │ cart-service │
 │   :8081      │               │    :8082      │               │   :8083      │
-│  (Postgres)  │               │ (Postgres+    │               │   (Redis     │
-│              │               │  Redis cache) │               │  ONLY - no   │
-└──────────────┘               └────────▲──────┘               │  Postgres)   │
+│  (Postgres)  │               │ (Postgres+    │               │   (Redis)    │
+│              │               │  Redis cache) │               │              │
+└──────────────┘               └────────▲──────┘               │              │
                                         │                      └──────▲───────┘
                                         │ Feign                       │ Feign
                                 ┌───────┴─────────────────────────────┘
@@ -51,24 +51,18 @@ For Postman (or Insomnia/Bruno), import `postman/ShopStack.postman_collection.js
                                 └───────────────┬─────────────────────┘
                                        ▲        │ publishes (fire-and-forget)
                                        │        ▼
-                                       │  ┌───────────────────────────┐
+                   all client traffic  │  ┌───────────────────────────┐
                                        │  │  Redis Stream:            │
                                        │  │  "order-events"           │
-                                       │  └────────────┬──────────────┘
-                                       │               │ consumer group
-                                       │               ▼
-                                       │  ┌──────────────────────────┐
-                                       │  │  notification-service    │
-                                       │  │  :8085 (no REST API -    │
-                                       │  │  background consumer)    │
-                                       │  └──────────────────────────┘
-                                       │ all client traffic
-                              ┌────────┴──────────┐
-                              │   api-gateway     │  :8080  (single public entry point)
-                              └────────▲──────────┘
-                                       │
-                                    client
-                          (browser / Postman / frontend)
+                                       │  └─────────────────────────┬─┘
+     ┌─────────────────┐               │                            │ consumer
+     │   api-gateway   │───────────────┘                            │ group
+     └────────▲────────┘ :8080 (single public entry point)          ▼
+              │                                         ┌──────────────────────┐
+              │                                         │ notification-service │
+            client                                      │ :8085 (no REST API - │
+(browser / Postman / frontend)                          │ background consumer) │
+                                                        └──────────────────────┘
 ```
 
 ## Tech stack
@@ -100,7 +94,7 @@ docker run --rm \
   mvn test
 ```
 
-## Quick Paths
+## Path Finder
 
 | Topic | Location |
 |---|---|
