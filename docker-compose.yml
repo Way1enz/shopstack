@@ -13,7 +13,6 @@ services:
 
   postgres:
     image: postgres:16-alpine
-    container_name: ecommerce-postgres
     environment:
       POSTGRES_USER: ecommerce
       POSTGRES_PASSWORD: ecommerce
@@ -38,7 +37,6 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: ecommerce-redis
     ports:
       - "6379:6379"
     volumes:
@@ -55,7 +53,6 @@ services:
     build:
       context: .
       dockerfile: eureka-server/Dockerfile
-    container_name: eureka-server
     ports:
       - "8761:8761"
     healthcheck:
@@ -71,7 +68,6 @@ services:
     build:
       context: .
       dockerfile: user-service/Dockerfile
-    container_name: user-service
     environment:
       EUREKA_URI: http://eureka-server:8761/eureka/
       DB_HOST: postgres
@@ -94,7 +90,6 @@ services:
     build:
       context: .
       dockerfile: product-service/Dockerfile
-    container_name: product-service
     environment:
       EUREKA_URI: http://eureka-server:8761/eureka/
       DB_HOST: postgres
@@ -118,7 +113,6 @@ services:
     build:
       context: .
       dockerfile: cart-service/Dockerfile
-    container_name: cart-service
     environment:
       EUREKA_URI: http://eureka-server:8761/eureka/
       REDIS_HOST: redis
@@ -135,7 +129,6 @@ services:
     build:
       context: .
       dockerfile: order-service/Dockerfile
-    container_name: order-service
     environment:
       EUREKA_URI: http://eureka-server:8761/eureka/
       DB_HOST: postgres
@@ -160,7 +153,6 @@ services:
     build:
       context: .
       dockerfile: notification-service/Dockerfile
-    container_name: notification-service
     environment:
       EUREKA_URI: http://eureka-server:8761/eureka/
       REDIS_HOST: redis
@@ -177,7 +169,6 @@ services:
     build:
       context: .
       dockerfile: api-gateway/Dockerfile
-    container_name: api-gateway
     ports:
       - "8080:8080"
     environment:

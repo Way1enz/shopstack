@@ -1,6 +1,6 @@
 # ShopStack
 
-A backend microservices project simulating an e-commerce application.
+Backend microservices project simulating an e-commerce application.
 
 ## Starting services with Docker
 
@@ -14,10 +14,32 @@ Starts Postgres and Redis, then Eureka, then every service, then the gateway las
 - API entry point (Gateway) — <http://localhost:8080>
 
 ```bash
+docker compose down      # stop, keep data
 docker compose down -v   # stop and wipe all data
 ```
 
 For Postman (or Insomnia/Bruno), import `postman/ShopStack.postman_collection.json` and `postman/ShopStack-Local.postman_environment.json` — tokens get captured automatically after Register/Login.
+
+## Scaling and load balancing
+
+Any service can be scaled to multiple replicas — no fixed `container_name` entries exist in `docker-compose.yml`, so Compose handles naming automatically.
+
+Start with multiple replicas (replace the normal startup command):
+```bash
+docker compose up --build --scale product-service=3
+```
+
+Scale up/down while already running — no restart needed:
+```bash
+docker compose up --scale product-service=5 --no-recreate -d
+docker compose up --scale product-service=1 --no-recreate -d
+```
+
+Every response from `product-service` includes an `X-Instance-Id` header containing the container's hostname, so you can observe Spring Cloud LoadBalancer distributing requests across instances:
+```bash
+for i in {1..10}; do curl -s -D - http://localhost:8080/api/products -o /dev/null | grep X-Instance-Id; done
+```
+With 3 replicas registered in Eureka, you should see the header value rotate across 3 different container IDs. Verify all replicas registered at <http://localhost:8761> under `PRODUCT-SERVICE` before running the loop — allow ~30 seconds after startup for registration.
 
 ## Services
 
@@ -33,7 +55,7 @@ For Postman (or Insomnia/Bruno), import `postman/ShopStack.postman_collection.js
 
 ```
                               ┌──────────────────┐
-                              │  eureka-server   │  :8761 (service registry)
+                              │  eureka-server   │ :8761 (service registry)
                               └────────▲─────────┘
                                        │ registers with
         ┌──────────────────────────────┼───────────────────────────────┐
@@ -58,11 +80,11 @@ For Postman (or Insomnia/Bruno), import `postman/ShopStack.postman_collection.js
      ┌─────────────────┐               │                            │ consumer
      │   api-gateway   │───────────────┘                            │ group
      └────────▲────────┘ :8080 (single public entry point)          ▼
-              │                                         ┌──────────────────────┐
-              │                                         │ notification-service │
-            client                                      │ :8085 (no REST API - │
-(browser / Postman / frontend)                          │ background consumer) │
-                                                        └──────────────────────┘
+              │                                        ┌──────────────────────┐
+              │                                        │ notification-service │
+            client                                     │ :8085 (no REST API - │
+(browser / Postman / frontend)                         │ background consumer) │
+                                                       └──────────────────────┘
 ```
 
 ## Tech stack
@@ -105,3 +127,4 @@ docker run --rm \
 | Checkout orchestration | [`order-service/.../service/OrderService.java`](order-service/src/main/java/com/ecommerce/order/service/OrderService.java) |
 | Redis Streams consumer | [`notification-service/.../listener/OrderEventListener.java`](notification-service/src/main/java/com/ecommerce/notification/listener/OrderEventListener.java) |
 | Gateway routes | [`api-gateway/.../resources/application.yml`](api-gateway/src/main/resources/application.yml) |
+| Load balancing (instance header) | [`product-service/.../config/InstanceIdFilter.java`](product-service/src/main/java/com/ecommerce/product/config/InstanceIdFilter.java) |
