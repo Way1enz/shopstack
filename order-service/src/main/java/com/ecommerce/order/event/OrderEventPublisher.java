@@ -10,10 +10,8 @@ import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
-// Publishes to the "order-events" stream after checkout succeeds - notification-service consumes
-// it asynchronously. Deliberately fire-and-forget: called after the order is already committed,
-// and any failure here is just logged, never propagated. A successful order should never fail
-// because Redis happened to be unreachable at that moment.
+// Fire-and-forget publish to "order-events" - a failure here is only logged, never propagated,
+// so a successful order never fails because Redis happened to be unreachable.
 @Component
 public class OrderEventPublisher {
 

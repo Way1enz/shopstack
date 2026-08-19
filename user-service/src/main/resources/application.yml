@@ -2,6 +2,9 @@ server:
   port: 8081
 
 spring:
+  threads:
+    virtual:
+      enabled: true
   application:
     name: user-service
   datasource:
@@ -10,9 +13,8 @@ spring:
     password: ${DB_PASSWORD:ecommerce}
   jpa:
     hibernate:
-      # Flyway now owns schema changes (see db/migration/) - Hibernate just confirms its
-      # entity mappings actually match the real schema at startup, failing fast with a clear
-      # error if they drift, rather than silently auto-modifying anything.
+      # Flyway owns schema changes (see db/migration/) - Hibernate just validates its
+      # entity mappings match the real schema at startup, failing fast on drift.
       ddl-auto: validate
     show-sql: false
     properties:
@@ -20,12 +22,9 @@ spring:
         format_sql: true
     open-in-view: false
   flyway:
-    # baseline-on-migrate: this database already has tables (created by ddl-auto: update,
-    # before Flyway existed in this project). Without this, Flyway refuses to run against a
-    # non-empty schema it doesn't recognize. baseline-version: 1 tells it "treat V1 as already
-    # applied" for that existing data, WITHOUT re-running V1's CREATE TABLE statements against
-    # tables that already exist. A genuinely fresh database (e.g. after docker compose down -v)
-    # has no pre-existing schema to baseline, so Flyway just runs V1 normally there instead.
+    # baseline-on-migrate: this database had tables before Flyway existed (from ddl-auto:
+    # update). baseline-version: 1 treats V1 as already applied for that existing data,
+    # without re-running its CREATE TABLE statements. A fresh database just runs V1 normally.
     baseline-on-migrate: true
     baseline-version: 1
 
@@ -38,10 +37,8 @@ eureka:
 
 jwt:
   secret: ${JWT_SECRET:change-this-super-secret-key-min-32-chars-long}
-  # Access tokens are intentionally short-lived (15 min default) since
-  # they're stateless and can't be revoked - if one leaks, it's only
-  # useful for a short window. Long-lived sessions are handled by the
-  # separate, revocable refresh token below instead.
+  # Access tokens are short-lived (15 min) since they're stateless and can't be revoked.
+  # Long-lived sessions are handled by the separate, revocable refresh token below.
   expiration-ms: ${JWT_EXPIRATION_MS:900000}
   # Refresh tokens are opaque DB-backed strings (see RefreshToken entity),
   # default 7 days, and are rotated (replaced) on every use.

@@ -7,9 +7,9 @@ import com.ecommerce.user.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -19,10 +19,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-// addFilters = false: this service's own Spring Security chain is deliberately permissive by
-// design (the gateway is what actually enforces auth - see SecurityConfig) so there's nothing
-// meaningful to test in that filter chain here; this test is purely about request validation
-// and HTTP status codes.
+// addFilters = false: auth is enforced at the gateway, not here - this only tests validation.
 @WebMvcTest(AuthController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class AuthControllerTest {
@@ -33,7 +30,7 @@ class AuthControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockBean
+    @MockitoBean
     private UserService userService;
 
     @Test
@@ -73,8 +70,7 @@ class AuthControllerTest {
 
     @Test
     void register_weakPassword_returns400() throws Exception {
-        // Missing uppercase, digit, and special character - only the @StrongPassword
-        // constraint (not just @NotBlank) should be what's catching this.
+        // Missing uppercase/digit/special char - should be caught by @StrongPassword, not @NotBlank.
         RegisterRequest request = new RegisterRequest("alice", "alice@example.com", "weakpassword");
 
         mockMvc.perform(post("/api/auth/register")

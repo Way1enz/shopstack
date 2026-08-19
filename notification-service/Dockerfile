@@ -1,4 +1,4 @@
-FROM maven:3.9-eclipse-temurin-17 AS build
+FROM maven:3.9-eclipse-temurin-25 AS build
 WORKDIR /workspace
 
 COPY pom.xml .
@@ -14,7 +14,7 @@ COPY notification-service/src notification-service/src
 
 RUN mvn -B -pl notification-service -am package -DskipTests
 
-FROM eclipse-temurin:17-jre-jammy
+FROM eclipse-temurin:25-jre-jammy
 WORKDIR /app
 RUN groupadd -r spring && useradd -r -g spring spring
 USER spring:spring

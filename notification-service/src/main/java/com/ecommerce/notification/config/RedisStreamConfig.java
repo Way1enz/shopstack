@@ -22,8 +22,7 @@ public class RedisStreamConfig {
 
     public static final String CONSUMER_GROUP = "notification-service-group";
 
-    // Fixed, not random/host-based - only one replica runs in this project, so a crashed
-    // container restarts as the same consumer and can recover its own pending backlog
+    // Fixed, not random/host-based - lets a crashed container recover its own pending backlog
     // (see PendingMessageRecoveryJob). Multiple replicas would need unique names instead.
     public static final String CONSUMER_NAME = "notification-consumer-1";
 
@@ -54,8 +53,7 @@ public class RedisStreamConfig {
         return container;
     }
 
-    // XGROUP CREATE ... MKSTREAM equivalent, run on every startup so this service doesn't
-    // depend on order-service having published first. BUSYGROUP just means it already exists.
+    // XGROUP CREATE ... MKSTREAM equivalent, run on startup. BUSYGROUP just means it already exists.
     private void ensureConsumerGroupExists(StringRedisTemplate redisTemplate) {
         try {
             org.springframework.data.redis.core.StreamOperations<String, String, String> streamOps = redisTemplate.opsForStream();

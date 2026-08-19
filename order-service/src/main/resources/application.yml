@@ -2,6 +2,9 @@ server:
   port: 8084
 
 spring:
+  threads:
+    virtual:
+      enabled: true
   application:
     name: order-service
   datasource:
@@ -29,9 +32,8 @@ eureka:
     prefer-ip-address: true
 
 payment:
-  # Simulated credit card authorization decline threshold - no real payment
-  # gateway is involved. Orders above this amount deterministically decline,
-  # so the failure path is actually testable rather than random.
+  # Simulated decline threshold (no real payment gateway) - deterministic so the
+  # failure path is actually testable.
   decline-above-amount: ${PAYMENT_DECLINE_ABOVE_AMOUNT:1000.00}
 
 management:

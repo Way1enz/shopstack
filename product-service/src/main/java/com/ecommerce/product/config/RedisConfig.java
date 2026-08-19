@@ -23,12 +23,8 @@ public class RedisConfig {
     public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
         ObjectMapper objectMapper = new ObjectMapper();
 
-        // A bare `new ObjectMapper()` does NOT get Spring Boot's
-        // autoconfigured Jackson modules (unlike the ObjectMapper Spring
-        // MVC uses for HTTP responses) - so java.time types like the
-        // Instant fields on Product must be registered explicitly here,
-        // or caching a Product throws "Java 8 date/time type `Instant`
-        // not supported" the moment @Cacheable tries to write it to Redis.
+        // A bare `new ObjectMapper()` doesn't get Spring Boot's autoconfigured Jackson modules,
+        // so java.time types (Instant fields on Product) need to be registered explicitly here.
         objectMapper.registerModule(new JavaTimeModule());
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 

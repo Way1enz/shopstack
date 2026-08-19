@@ -1,6 +1,5 @@
--- Baseline migration, captured verbatim (via pg_dump --schema-only) from the real schema
--- Hibernate's ddl-auto: update actually produced - including the CHECK constraint on
--- status, which Hibernate generates automatically for a @Enumerated(EnumType.STRING) column.
+-- Captured verbatim (pg_dump --schema-only) from Hibernate's ddl-auto: update output,
+-- including the CHECK constraint on status from @Enumerated(EnumType.STRING).
 
 CREATE TABLE orders (
     id bigint NOT NULL,

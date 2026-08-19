@@ -17,11 +17,9 @@ public class RedisConfig {
 
     @Bean
     public RedisTemplate<String, Cart> cartRedisTemplate(RedisConnectionFactory connectionFactory) {
-        // Cart.updatedAt is a java.time.Instant. The no-arg
-        // GenericJackson2JsonRedisSerializer() constructor builds its own
-        // plain ObjectMapper with no JavaTimeModule registered, so without
-        // this explicit setup, saving a Cart throws "Java 8 date/time type
-        // `Instant` not supported" the first time addItem() is called.
+        // Cart.updatedAt is a java.time.Instant, and the no-arg
+        // GenericJackson2JsonRedisSerializer() builds an ObjectMapper with no
+        // JavaTimeModule - hence this explicit setup.
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);

@@ -20,9 +20,7 @@ public class ProductService {
     private final ProductRepository productRepository;
 
     public Page<Product> list(String category, String search, Pageable pageable) {
-        // Listing endpoints are intentionally NOT cached (too many possible
-        // filter/page combinations); only single-product lookups are cached
-        // below, which is where the read traffic concentrates in practice.
+        // Listing isn't cached (too many filter/page combinations); only single-product lookups are.
         if (category != null && !category.isBlank()) {
             return productRepository.findByCategoryIgnoreCase(category, pageable);
         }
@@ -86,8 +84,7 @@ public class ProductService {
         return productRepository.save(product);
     }
 
-    // Releases stock reserved via decrementStock() - either payment declined after
-    // reservation, or a paid order got cancelled. Called by order-service.
+    // Releases stock reserved via decrementStock() - declined payment or order cancellation.
     @Transactional
     @CacheEvict(cacheNames = "products", key = "#id")
     public Product restock(Long id, int quantity) {

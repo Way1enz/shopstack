@@ -17,7 +17,7 @@ public interface ProductClient {
     @PostMapping("/api/products/{id}/decrement-stock")
     ProductDTO decrementStock(@PathVariable("id") Long id, @RequestParam("quantity") int quantity);
 
-    /** Releases previously-decremented stock - used when payment fails/declines after stock was reserved, and when cancelling a paid order. */
+    /** Releases previously-decremented stock - declined payment or order cancellation. */
     @PostMapping("/api/products/{id}/restock")
     ProductDTO restock(@PathVariable("id") Long id, @RequestParam("quantity") int quantity);
 }

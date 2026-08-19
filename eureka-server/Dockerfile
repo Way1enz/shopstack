@@ -1,9 +1,7 @@
 # ---- Build stage ----
-# NOTE: this Dockerfile expects the build context to be the PROJECT ROOT
-# (docker-compose.yml sets `context: .` and `dockerfile: eureka-server/Dockerfile`)
-# because this is a multi-module Maven reactor project - the parent pom.xml
-# and every module must be visible to resolve versions correctly.
-FROM maven:3.9-eclipse-temurin-17 AS build
+# Build context must be the project root (see docker-compose.yml) - this is a
+# multi-module Maven reactor, so the parent pom.xml and every module must be visible.
+FROM maven:3.9-eclipse-temurin-25 AS build
 WORKDIR /workspace
 
 COPY pom.xml .
@@ -20,8 +18,10 @@ COPY eureka-server/src eureka-server/src
 RUN mvn -B -pl eureka-server -am package -DskipTests
 
 # ---- Runtime stage ----
-FROM eclipse-temurin:17-jre-jammy
+FROM eclipse-temurin:25-jre-jammy
 WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends wget \
+    && rm -rf /var/lib/apt/lists/*
 RUN groupadd -r spring && useradd -r -g spring spring
 USER spring:spring
 COPY --from=build /workspace/eureka-server/target/eureka-server.jar app.jar

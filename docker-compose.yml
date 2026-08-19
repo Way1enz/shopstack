@@ -12,7 +12,7 @@
 services:
 
   postgres:
-    image: postgres:16-alpine
+    image: postgres:17-alpine
     environment:
       POSTGRES_USER: ecommerce
       POSTGRES_PASSWORD: ecommerce
@@ -23,11 +23,9 @@ services:
       - postgres-data:/var/lib/postgresql/data
       - ./docker/postgres-init:/docker-entrypoint-initdb.d
     healthcheck:
-      # Explicitly target the "postgres" database (created via POSTGRES_DB
-      # above). Without "-d", pg_isready defaults to probing a database
-      # named after the user ("ecommerce"), which doesn't exist - Postgres
-      # logs that as FATAL even though pg_isready itself still reports the
-      # server healthy. Pointing at a real database avoids the noisy log.
+      # Explicitly target "postgres" - without "-d", pg_isready probes a database
+      # named after the user ("ecommerce"), which doesn't exist, and Postgres logs
+      # that as FATAL even though the healthcheck itself still passes.
       test: ["CMD-SHELL", "pg_isready -U ecommerce -d postgres"]
       interval: 5s
       timeout: 5s

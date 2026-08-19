@@ -1,7 +1,5 @@
--- Baseline migration, captured verbatim (via pg_dump --schema-only) from the real schema
--- Hibernate's ddl-auto: update actually produced, rather than reconstructed from the entity
--- classes by hand - including the exact auto-generated constraint names (ukXXXXX, fkXXXXX),
--- which are opaque hashes there would be no way to correctly guess.
+-- Captured verbatim (pg_dump --schema-only) from the schema Hibernate's ddl-auto: update
+-- actually produced, including auto-generated constraint names - not reconstructed by hand.
 
 CREATE TABLE users (
     id bigint NOT NULL,

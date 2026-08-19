@@ -19,10 +19,9 @@ import static com.ecommerce.notification.config.RedisStreamConfig.CONSUMER_GROUP
 import static com.ecommerce.notification.config.RedisStreamConfig.CONSUMER_NAME;
 import static com.ecommerce.notification.config.RedisStreamConfig.STREAM_KEY;
 
-// Recovers messages delivered to this consumer but never acknowledged - most likely this
-// service crashed mid-processing. Reading with ReadOffset.from("0") under the same consumer
-// group + name returns that consumer's own pending backlog rather than new messages (standard
-// XREADGROUP behavior). Since CONSUMER_NAME is fixed, this works even across a container restart.
+// Recovers messages delivered but never acknowledged (likely a crash mid-processing).
+// ReadOffset.from("0") under the same group+name returns this consumer's own pending
+// backlog rather than new messages - standard XREADGROUP behavior.
 @Component
 public class PendingMessageRecoveryJob {
 
@@ -39,9 +38,7 @@ public class PendingMessageRecoveryJob {
     @Scheduled(fixedDelay = 15000, initialDelay = 20000)
     public void recoverOwnPendingMessages() {
         try {
-            // opsForStream() is generic over HK/HV independent of StringRedisTemplate's own
-            // types - assigning it to this explicitly-typed variable forces String inference
-            // instead of chaining .read() directly off it, which defaults to Object.
+            // Explicit type forces String inference instead of the Object default from chaining .read().
             StreamOperations<String, String, String> streamOps = redisTemplate.opsForStream();
 
             List<MapRecord<String, String, String>> pending = streamOps.read(
@@ -65,8 +62,7 @@ public class PendingMessageRecoveryJob {
                 }
             }
         } catch (Exception e) {
-            // Never let this optional recovery pass crash the service - the live listener
-            // keeps handling new messages regardless.
+            // Never let this optional recovery pass crash the service.
             log.error("Pending message recovery check failed", e);
         }
     }

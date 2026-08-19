@@ -1,7 +1,5 @@
--- Runs automatically on first Postgres container startup (mounted into
--- /docker-entrypoint-initdb.d/). Creates one database per service that
--- needs relational storage. cart-service is deliberately absent - it
--- uses Redis exclusively.
+-- Runs on first Postgres container startup (mounted into /docker-entrypoint-initdb.d/).
+-- One database per service that needs relational storage; cart-service uses Redis only.
 CREATE DATABASE user_db;
 CREATE DATABASE product_db;
 CREATE DATABASE order_db;

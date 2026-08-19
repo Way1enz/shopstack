@@ -9,10 +9,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-// Demonstration-only: stamps every response with which container instance handled it,
-// so scaling this service (docker compose up --scale product-service=3) and hitting it
-// repeatedly through the gateway visibly shows requests rotating across instances via
-// Spring Cloud LoadBalancer, instead of that load-balancing being invisible.
+// Demonstration-only: stamps responses with the container instance so scaling and hitting
+// this service repeatedly visibly shows load balancing across instances, not just claims it.
 @Component
 public class InstanceIdFilter extends OncePerRequestFilter {
 
