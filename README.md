@@ -89,7 +89,7 @@ With 3 replicas registered in Eureka, you should see the header value rotate acr
 
 ## Tech stack
 
-- Java 17, Spring Boot 3.3.4, Spring Cloud 2023.0.3
+- Java 21 (virtual threads enabled), Spring Boot 3.3.4, Spring Cloud 2023.0.3
 - Spring Data JPA + PostgreSQL, schema managed with Flyway
 - Spring Data Redis (cache, primary datastore, and Streams)
 - JJWT, with DB-backed rotating refresh tokens
@@ -104,7 +104,7 @@ mvn test
 
 Unit tests run with plain Mockito. Integration tests spin up Postgres/Redis via Testcontainers.
 
-*If your local JDK is newer than Java 17 you may hit Lombok errors (`cannot find symbol: method builder()`). Run Maven in a matching container instead:*
+*If your local JDK is newer than Java 21 you may hit Lombok errors (`cannot find symbol: method builder()`). Run Maven in a matching container instead:*
 ```bash
 docker run --rm \
   -v "$(pwd)":/workspace \
@@ -112,7 +112,7 @@ docker run --rm \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -e DOCKER_HOST=unix:///var/run/docker.sock \
   -w /workspace \
-  maven:3.9-eclipse-temurin-17 \
+  maven:3.9-eclipse-temurin-21 \
   mvn test
 ```
 

@@ -1,4 +1,4 @@
-FROM maven:3.9-eclipse-temurin-17 AS build
+FROM maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /workspace
 
 COPY pom.xml .
@@ -14,7 +14,7 @@ COPY cart-service/src cart-service/src
 
 RUN mvn -B -pl cart-service -am package -DskipTests
 
-FROM eclipse-temurin:17-jre-jammy
+FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
 RUN groupadd -r spring && useradd -r -g spring spring
 USER spring:spring

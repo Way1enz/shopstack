@@ -2,6 +2,9 @@ server:
   port: 8084
 
 spring:
+  threads:
+    virtual:
+      enabled: true
   application:
     name: order-service
   datasource:
