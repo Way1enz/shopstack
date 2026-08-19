@@ -1,4 +1,4 @@
-FROM maven:3.9-eclipse-temurin-21 AS build
+FROM maven:3.9-eclipse-temurin-25 AS build
 WORKDIR /workspace
 
 COPY pom.xml .
@@ -14,7 +14,7 @@ COPY api-gateway/src api-gateway/src
 
 RUN mvn -B -pl api-gateway -am package -DskipTests
 
-FROM eclipse-temurin:21-jre-jammy
+FROM eclipse-temurin:25-jre-jammy
 WORKDIR /app
 RUN groupadd -r spring && useradd -r -g spring spring
 USER spring:spring
