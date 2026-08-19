@@ -6,55 +6,57 @@ spring:
     name: api-gateway
   cloud:
     gateway:
-      discovery:
-        locator:
-          enabled: false
-      routes:
-        # ---- Auth (register/login) - public ----
-        - id: auth-service
-          uri: lb://USER-SERVICE
-          predicates:
-            - Path=/api/auth/**
+      server:
+        webflux:
+          discovery:
+            locator:
+              enabled: false
+          routes:
+            # ---- Auth (register/login) - public ----
+            - id: auth-service
+              uri: lb://USER-SERVICE
+              predicates:
+                - Path=/api/auth/**
 
-        # ---- User profile - requires a valid JWT ----
-        - id: user-service
-          uri: lb://USER-SERVICE
-          predicates:
-            - Path=/api/users/**
-          filters:
-            - AuthFilter
+            # ---- User profile - requires a valid JWT ----
+            - id: user-service
+              uri: lb://USER-SERVICE
+              predicates:
+                - Path=/api/users/**
+              filters:
+                - AuthFilter
 
-        # ---- Product catalog: browsing is public ----
-        - id: product-service-read
-          uri: lb://PRODUCT-SERVICE
-          predicates:
-            - Path=/api/products/**
-            - Method=GET
+            # ---- Product catalog: browsing is public ----
+            - id: product-service-read
+              uri: lb://PRODUCT-SERVICE
+              predicates:
+                - Path=/api/products/**
+                - Method=GET
 
-        # ---- Product catalog: mutations require a valid JWT ----
-        - id: product-service-write
-          uri: lb://PRODUCT-SERVICE
-          predicates:
-            - Path=/api/products/**
-            - Method=POST,PUT,DELETE
-          filters:
-            - AuthFilter
+            # ---- Product catalog: mutations require a valid JWT ----
+            - id: product-service-write
+              uri: lb://PRODUCT-SERVICE
+              predicates:
+                - Path=/api/products/**
+                - Method=POST,PUT,DELETE
+              filters:
+                - AuthFilter
 
-        # ---- Cart - always requires a valid JWT ----
-        - id: cart-service
-          uri: lb://CART-SERVICE
-          predicates:
-            - Path=/api/cart/**
-          filters:
-            - AuthFilter
+            # ---- Cart - always requires a valid JWT ----
+            - id: cart-service
+              uri: lb://CART-SERVICE
+              predicates:
+                - Path=/api/cart/**
+              filters:
+                - AuthFilter
 
-        # ---- Orders - always requires a valid JWT ----
-        - id: order-service
-          uri: lb://ORDER-SERVICE
-          predicates:
-            - Path=/api/orders/**
-          filters:
-            - AuthFilter
+            # ---- Orders - always requires a valid JWT ----
+            - id: order-service
+              uri: lb://ORDER-SERVICE
+              predicates:
+                - Path=/api/orders/**
+              filters:
+                - AuthFilter
 
 eureka:
   client:
@@ -71,3 +73,6 @@ management:
     web:
       exposure:
         include: health,info,gateway
+  endpoint:
+    gateway:
+      access: read-only

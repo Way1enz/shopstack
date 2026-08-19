@@ -25,24 +25,20 @@ For Postman (or Insomnia/Bruno), import `postman/ShopStack.postman_collection.js
 Any service can be scaled to multiple replicas — no fixed `container_name` entries exist in `docker-compose.yml`, so Compose handles naming automatically.
 
 Start with multiple replicas (replace the normal startup command):
-
 ```bash
 docker compose up --build --scale product-service=3
 ```
 
 Scale up/down while already running — no restart needed:
-
 ```bash
 docker compose up --scale product-service=5 --no-recreate -d
 docker compose up --scale product-service=1 --no-recreate -d
 ```
 
 Every response from `product-service` includes an `X-Instance-Id` header containing the container's hostname, so you can observe Spring Cloud LoadBalancer distributing requests across instances:
-
 ```bash
 for i in {1..10}; do curl -s -D - http://localhost:8080/api/products -o /dev/null | grep X-Instance-Id; done
 ```
-
 With 3 replicas registered in Eureka, you should see the header value rotate across 3 different container IDs. Verify all replicas registered at <http://localhost:8761> under `PRODUCT-SERVICE` before running the loop — allow ~30 seconds after startup for registration.
 
 ## Services
@@ -123,7 +119,7 @@ docker run --rm \
 ## Path Finder
 
 | Topic | Location |
-| --- | --- |
+|---|---|
 | JWT validation | [`api-gateway/.../filter/AuthFilter.java`](api-gateway/src/main/java/com/ecommerce/gateway/filter/AuthFilter.java) |
 | Password rules | [`user-service/.../validation/StrongPasswordValidator.java`](user-service/src/main/java/com/ecommerce/user/validation/StrongPasswordValidator.java) |
 | Refresh token rotation | [`user-service/.../service/RefreshTokenService.java`](user-service/src/main/java/com/ecommerce/user/service/RefreshTokenService.java) |

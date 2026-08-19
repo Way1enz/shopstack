@@ -8,9 +8,9 @@ import com.ecommerce.order.entity.Order;
 import com.ecommerce.order.repository.OrderRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -52,10 +52,10 @@ class OrderIntegrationTest {
     @Autowired
     private OrderRepository orderRepository;
 
-    @MockBean
+    @MockitoBean
     private CartClient cartClient;
 
-    @MockBean
+    @MockitoBean
     private ProductClient productClient;
 
     @Test
