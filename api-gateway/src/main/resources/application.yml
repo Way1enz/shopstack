@@ -4,6 +4,10 @@ server:
 spring:
   application:
     name: api-gateway
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
   cloud:
     gateway:
       server:
@@ -12,11 +16,18 @@ spring:
             locator:
               enabled: false
           routes:
-            # ---- Auth (register/login) - public ----
+            # ---- Auth (register/login) - public, IP-keyed (brute-force target) ----
             - id: auth-service
               uri: lb://USER-SERVICE
               predicates:
                 - Path=/api/auth/**
+              filters:
+                - name: RequestRateLimiter
+                  args:
+                    redis-rate-limiter.replenishRate: 5
+                    redis-rate-limiter.burstCapacity: 10
+                    redis-rate-limiter.requestedTokens: 1
+                    key-resolver: "#{@rateLimiterKeyResolver}"
 
             # ---- User profile - requires a valid JWT ----
             - id: user-service
@@ -25,13 +36,26 @@ spring:
                 - Path=/api/users/**
               filters:
                 - AuthFilter
+                - name: RequestRateLimiter
+                  args:
+                    redis-rate-limiter.replenishRate: 20
+                    redis-rate-limiter.burstCapacity: 40
+                    redis-rate-limiter.requestedTokens: 1
+                    key-resolver: "#{@rateLimiterKeyResolver}"
 
-            # ---- Product catalog: browsing is public ----
+            # ---- Product catalog: browsing is public - IP-keyed ----
             - id: product-service-read
               uri: lb://PRODUCT-SERVICE
               predicates:
                 - Path=/api/products/**
                 - Method=GET
+              filters:
+                - name: RequestRateLimiter
+                  args:
+                    redis-rate-limiter.replenishRate: 20
+                    redis-rate-limiter.burstCapacity: 40
+                    redis-rate-limiter.requestedTokens: 1
+                    key-resolver: "#{@rateLimiterKeyResolver}"
 
             # ---- Product catalog: mutations require a valid JWT ----
             - id: product-service-write
@@ -41,6 +65,12 @@ spring:
                 - Method=POST,PUT,DELETE
               filters:
                 - AuthFilter
+                - name: RequestRateLimiter
+                  args:
+                    redis-rate-limiter.replenishRate: 20
+                    redis-rate-limiter.burstCapacity: 40
+                    redis-rate-limiter.requestedTokens: 1
+                    key-resolver: "#{@rateLimiterKeyResolver}"
 
             # ---- Cart - always requires a valid JWT ----
             - id: cart-service
@@ -49,14 +79,27 @@ spring:
                 - Path=/api/cart/**
               filters:
                 - AuthFilter
+                - name: RequestRateLimiter
+                  args:
+                    redis-rate-limiter.replenishRate: 20
+                    redis-rate-limiter.burstCapacity: 40
+                    redis-rate-limiter.requestedTokens: 1
+                    key-resolver: "#{@rateLimiterKeyResolver}"
 
-            # ---- Orders - always requires a valid JWT ----
+            # ---- Orders - always requires a valid JWT. Lower burst - checkout fans out
+            # into cart-service + N product-service calls downstream. ----
             - id: order-service
               uri: lb://ORDER-SERVICE
               predicates:
                 - Path=/api/orders/**
               filters:
                 - AuthFilter
+                - name: RequestRateLimiter
+                  args:
+                    redis-rate-limiter.replenishRate: 10
+                    redis-rate-limiter.burstCapacity: 20
+                    redis-rate-limiter.requestedTokens: 1
+                    key-resolver: "#{@rateLimiterKeyResolver}"
 
 eureka:
   client:

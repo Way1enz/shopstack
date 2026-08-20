@@ -1,8 +1,8 @@
 package com.ecommerce.order.service;
 
-import com.ecommerce.order.client.CartClient;
 import com.ecommerce.order.client.CartDTO;
-import com.ecommerce.order.client.ProductClient;
+import com.ecommerce.order.client.resilient.ResilientCartClient;
+import com.ecommerce.order.client.resilient.ResilientProductClient;
 import com.ecommerce.order.dto.CheckoutRequest;
 import com.ecommerce.order.entity.Order;
 import com.ecommerce.order.entity.OrderItem;
@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -29,8 +30,8 @@ public class OrderService {
     private static final Logger log = LoggerFactory.getLogger(OrderService.class);
 
     private final OrderRepository orderRepository;
-    private final CartClient cartClient;
-    private final ProductClient productClient;
+    private final ResilientCartClient cartClient;
+    private final ResilientProductClient productClient;
     private final OrderEventPublisher orderEventPublisher;
     private final PaymentService paymentService;
 
@@ -60,8 +61,8 @@ public class OrderService {
         List<CartDTO.CartItemDTO> decremented = new ArrayList<>();
 
         for (CartDTO.CartItemDTO cartItem : cart.items()) {
-            // Confirms availability and decrements stock at the moment of truth.
-            productClient.decrementStock(cartItem.productId(), cartItem.quantity());
+            // Key generated once, held fixed across any retries so a retry never double-applies.
+            productClient.decrementStock(cartItem.productId(), cartItem.quantity(), newIdempotencyKey());
             decremented.add(cartItem);
 
             OrderItem orderItem = OrderItem.builder()
@@ -142,10 +143,16 @@ public class OrderService {
 
     private void restockOne(Long productId, int quantity) {
         try {
-            productClient.restock(productId, quantity);
+            productClient.restock(productId, quantity, newIdempotencyKey());
         } catch (Exception restockFailure) {
             log.warn("Failed to restock product {} (qty {}) - stock may be understated until manually corrected",
                     productId, quantity, restockFailure);
         }
+    }
+
+    // Generated once by the initiator, passed as a plain argument into the resilience-wrapped
+    // Feign call - see ResilientProductClient for why it can't be generated inside the retry.
+    private String newIdempotencyKey() {
+        return UUID.randomUUID().toString();
     }
 }

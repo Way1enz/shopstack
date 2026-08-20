@@ -24,6 +24,8 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -63,7 +65,7 @@ class OrderIntegrationTest {
         Long userId = 100L;
         CartDTO.CartItemDTO item = new CartDTO.CartItemDTO(1L, "Widget", new BigDecimal("19.99"), 2);
         when(cartClient.getCart(userId)).thenReturn(new CartDTO(userId, List.of(item)));
-        when(productClient.decrementStock(1L, 2)).thenReturn(new ProductDTO(1L, "Widget", new BigDecimal("19.99"), 8));
+        when(productClient.decrementStock(eq(1L), eq(2), anyString())).thenReturn(new ProductDTO(1L, "Widget", new BigDecimal("19.99"), 8));
 
         String body = "{\"shippingAddress\":\"123 Main St\",\"paymentMethod\":\"CASH\"}";
 
@@ -87,7 +89,7 @@ class OrderIntegrationTest {
         Long userId = 200L;
         CartDTO.CartItemDTO expensiveItem = new CartDTO.CartItemDTO(2L, "Server Rack", new BigDecimal("1500.00"), 1);
         when(cartClient.getCart(userId)).thenReturn(new CartDTO(userId, List.of(expensiveItem)));
-        when(productClient.decrementStock(2L, 1)).thenReturn(new ProductDTO(2L, "Server Rack", new BigDecimal("1500.00"), 3));
+        when(productClient.decrementStock(eq(2L), eq(1), anyString())).thenReturn(new ProductDTO(2L, "Server Rack", new BigDecimal("1500.00"), 3));
 
         String body = "{\"paymentMethod\":\"CREDIT_CARD\",\"cardNumber\":\"4111111111111111\","
                 + "\"cardHolderName\":\"Alice\",\"expiryMonth\":\"12\",\"expiryYear\":\"30\"}";
@@ -109,7 +111,7 @@ class OrderIntegrationTest {
         Long userId = 300L;
         CartDTO.CartItemDTO item = new CartDTO.CartItemDTO(3L, "Gadget", new BigDecimal("9.99"), 1);
         when(cartClient.getCart(userId)).thenReturn(new CartDTO(userId, List.of(item)));
-        when(productClient.decrementStock(anyLong(), anyInt()))
+        when(productClient.decrementStock(anyLong(), anyInt(), anyString()))
                 .thenReturn(new ProductDTO(3L, "Gadget", new BigDecimal("9.99"), 99));
 
         mockMvc.perform(post("/api/orders/checkout")

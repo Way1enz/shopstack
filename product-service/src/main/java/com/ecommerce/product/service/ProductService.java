@@ -5,6 +5,8 @@ import com.ecommerce.product.entity.Product;
 import com.ecommerce.product.exception.ApiException;
 import com.ecommerce.product.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
@@ -17,7 +19,10 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class ProductService {
 
+    private static final Logger log = LoggerFactory.getLogger(ProductService.class);
+
     private final ProductRepository productRepository;
+    private final IdempotencyGuard idempotencyGuard;
 
     public Page<Product> list(String category, String search, Pageable pageable) {
         // Listing endpoints are intentionally NOT cached (too many possible
@@ -73,26 +78,54 @@ public class ProductService {
         productRepository.deleteById(id);
     }
 
-    /** Used by order-service (via Feign) to confirm/decrement stock at checkout. */
+    // idempotencyKey: caller-generated, held fixed across a Feign retry. Null/blank skips
+    // idempotency protection (order-service always sends one).
     @Transactional
     @CacheEvict(cacheNames = "products", key = "#id")
-    public Product decrementStock(Long id, int quantity) {
-        Product product = getById(id);
-        if (product.getStockQuantity() < quantity) {
-            throw new ApiException(HttpStatus.CONFLICT,
-                    "Insufficient stock for product " + id + ": requested " + quantity + ", available " + product.getStockQuantity());
+    public Product decrementStock(Long id, int quantity, String idempotencyKey) {
+        if (hasKey(idempotencyKey) && !idempotencyGuard.claim("decrement-stock:" + id, idempotencyKey)) {
+            log.info("Duplicate decrement-stock request for product {} (key {}) - returning current state", id, idempotencyKey);
+            return getById(id);
         }
-        product.setStockQuantity(product.getStockQuantity() - quantity);
-        return productRepository.save(product);
+        try {
+            Product product = getById(id);
+            if (product.getStockQuantity() < quantity) {
+                throw new ApiException(HttpStatus.CONFLICT,
+                        "Insufficient stock for product " + id + ": requested " + quantity + ", available " + product.getStockQuantity());
+            }
+            product.setStockQuantity(product.getStockQuantity() - quantity);
+            return productRepository.save(product);
+        } catch (RuntimeException failure) {
+            // Claim was premature - nothing was actually decremented, so a legitimate retry
+            // must not be told "already done".
+            if (hasKey(idempotencyKey)) {
+                idempotencyGuard.release("decrement-stock:" + id, idempotencyKey);
+            }
+            throw failure;
+        }
     }
 
-    // Releases stock reserved via decrementStock() - either payment declined after
-    // reservation, or a paid order got cancelled. Called by order-service.
+    // Releases stock reserved via decrementStock() - declined payment or cancelled order.
     @Transactional
     @CacheEvict(cacheNames = "products", key = "#id")
-    public Product restock(Long id, int quantity) {
-        Product product = getById(id);
-        product.setStockQuantity(product.getStockQuantity() + quantity);
-        return productRepository.save(product);
+    public Product restock(Long id, int quantity, String idempotencyKey) {
+        if (hasKey(idempotencyKey) && !idempotencyGuard.claim("restock:" + id, idempotencyKey)) {
+            log.info("Duplicate restock request for product {} (key {}) - returning current state", id, idempotencyKey);
+            return getById(id);
+        }
+        try {
+            Product product = getById(id);
+            product.setStockQuantity(product.getStockQuantity() + quantity);
+            return productRepository.save(product);
+        } catch (RuntimeException failure) {
+            if (hasKey(idempotencyKey)) {
+                idempotencyGuard.release("restock:" + id, idempotencyKey);
+            }
+            throw failure;
+        }
+    }
+
+    private boolean hasKey(String idempotencyKey) {
+        return idempotencyKey != null && !idempotencyKey.isBlank();
     }
 }
