@@ -28,6 +28,12 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
+        <!-- Backs Spring Cloud Gateway's RedisRateLimiter (reactive - the blocking
+             spring-boot-starter-data-redis won't wire a ReactiveRedisConnectionFactory). -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis-reactive</artifactId>
+        </dependency>
 
         <!-- JWT validation -->
         <dependency>

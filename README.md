@@ -51,6 +51,12 @@ With 3 replicas registered in Eureka, you should see the header value rotate acr
 - **api-gateway**: single entry point, routing, JWT validation.
 - **eureka-server**: service registry.
 
+## Resilience
+
+- **order-service → cart-service/product-service (Feign)**: circuit breaker + retry (Resilience4j) + connect/read timeouts, per client. Retries skip 4xx (business rejections like insufficient stock) and an open circuit. See `client/resilient/` and `application.yml`.
+- **decrementStock/restock idempotency**: caller-generated `Idempotency-Key` header, checked against Redis on product-service so a retried mutation doesn't double-apply. See `IdempotencyGuard`.
+- **Gateway rate limiting**: Redis-backed token bucket per route, keyed by user id (falls back to IP for public routes). See `RateLimiterKeyResolver` and `application.yml`.
+
 ## Architecture
 
 ```
@@ -90,6 +96,7 @@ With 3 replicas registered in Eureka, you should see the header value rotate acr
 ## Tech stack
 
 - Java 25 (virtual threads enabled), Spring Boot 4.1.0, Spring Cloud 2025.1.2
+- Resilience4j (circuit breaker, retry) on order-service's Feign clients; Redis rate limiting on the gateway
 - Spring Data JPA + PostgreSQL, schema managed with Flyway
 - Spring Data Redis (cache, primary datastore, and Streams)
 - JJWT, with DB-backed rotating refresh tokens
@@ -128,3 +135,6 @@ docker run --rm \
 | Redis Streams consumer | [`notification-service/.../listener/OrderEventListener.java`](notification-service/src/main/java/com/ecommerce/notification/listener/OrderEventListener.java) |
 | Gateway routes | [`api-gateway/.../resources/application.yml`](api-gateway/src/main/resources/application.yml) |
 | Load balancing (instance header) | [`product-service/.../config/InstanceIdFilter.java`](product-service/src/main/java/com/ecommerce/product/config/InstanceIdFilter.java) |
+| Circuit breaker/retry wrappers | [`order-service/.../client/resilient/`](order-service/src/main/java/com/ecommerce/order/client/resilient) |
+| Stock mutation idempotency | [`product-service/.../service/IdempotencyGuard.java`](product-service/src/main/java/com/ecommerce/product/service/IdempotencyGuard.java) |
+| Gateway rate limit key resolution | [`api-gateway/.../filter/RateLimiterKeyResolver.java`](api-gateway/src/main/java/com/ecommerce/gateway/filter/RateLimiterKeyResolver.java) |

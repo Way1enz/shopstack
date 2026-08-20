@@ -1,8 +1,8 @@
 package com.ecommerce.order.service;
 
-import com.ecommerce.order.client.CartClient;
 import com.ecommerce.order.client.CartDTO;
-import com.ecommerce.order.client.ProductClient;
+import com.ecommerce.order.client.resilient.ResilientCartClient;
+import com.ecommerce.order.client.resilient.ResilientProductClient;
 import com.ecommerce.order.dto.CheckoutRequest;
 import com.ecommerce.order.entity.Order;
 import com.ecommerce.order.entity.OrderItem;
@@ -29,6 +29,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -40,9 +41,9 @@ class OrderServiceTest {
     @Mock
     private OrderRepository orderRepository;
     @Mock
-    private CartClient cartClient;
+    private ResilientCartClient cartClient;
     @Mock
-    private ProductClient productClient;
+    private ResilientProductClient productClient;
     @Mock
     private OrderEventPublisher orderEventPublisher;
     @Mock
@@ -93,10 +94,10 @@ class OrderServiceTest {
         assertThat(result.getTotalAmount()).isEqualByComparingTo(new BigDecimal("39.98"));
         assertThat(result.getItems()).hasSize(1);
 
-        verify(productClient).decrementStock(10L, 2);
+        verify(productClient).decrementStock(eq(10L), eq(2), anyString());
         verify(cartClient).clearCart(userId);
         verify(orderEventPublisher).publishOrderCreated(result);
-        verify(productClient, never()).restock(anyLong(), anyInt());
+        verify(productClient, never()).restock(anyLong(), anyInt(), anyString());
     }
 
     @Test
@@ -117,10 +118,10 @@ class OrderServiceTest {
                 .isSameAs(declineException);
 
         // Stock was already decremented for both items before payment ran - both must be released.
-        verify(productClient).decrementStock(10L, 2);
-        verify(productClient).decrementStock(20L, 1);
-        verify(productClient).restock(10L, 2);
-        verify(productClient).restock(20L, 1);
+        verify(productClient).decrementStock(eq(10L), eq(2), anyString());
+        verify(productClient).decrementStock(eq(20L), eq(1), anyString());
+        verify(productClient).restock(eq(10L), eq(2), anyString());
+        verify(productClient).restock(eq(20L), eq(1), anyString());
 
         // Nothing downstream of payment should have happened.
         verify(orderRepository, never()).save(any(Order.class));
@@ -140,7 +141,7 @@ class OrderServiceTest {
         ApiException declineException = new ApiException(HttpStatus.PAYMENT_REQUIRED, "Declined");
         when(paymentService.validateAndProcess(eq(PaymentMethod.CASH), any(BigDecimal.class), eq(request)))
                 .thenThrow(declineException);
-        when(productClient.restock(10L, 1)).thenThrow(new RuntimeException("product-service unreachable"));
+        when(productClient.restock(eq(10L), eq(1), anyString())).thenThrow(new RuntimeException("product-service unreachable"));
 
         assertThatThrownBy(() -> orderService.checkout(userId, request))
                 .isSameAs(declineException);
@@ -179,7 +180,7 @@ class OrderServiceTest {
         Order result = orderService.cancel(1L, 1L);
 
         assertThat(result.getStatus()).isEqualTo(OrderStatus.CANCELLED);
-        verify(productClient).restock(10L, 2);
+        verify(productClient).restock(eq(10L), eq(2), anyString());
     }
 
     @Test

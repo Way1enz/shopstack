@@ -172,8 +172,12 @@ services:
     environment:
       EUREKA_URI: http://eureka-server:8761/eureka/
       JWT_SECRET: ${JWT_SECRET:-change-this-super-secret-key-min-32-chars-long}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
     depends_on:
       eureka-server:
+        condition: service_healthy
+      redis:
         condition: service_healthy
       user-service:
         condition: service_started

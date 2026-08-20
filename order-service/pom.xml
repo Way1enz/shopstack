@@ -44,6 +44,18 @@
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-openfeign</artifactId>
         </dependency>
+        <!-- Circuit breakers/timeouts/retries around the CartClient/ProductClient Feign calls. -->
+        <dependency>
+            <groupId>io.github.resilience4j</groupId>
+            <artifactId>resilience4j-spring-boot4</artifactId>
+            <version>${resilience4j.version}</version>
+        </dependency>
+        <!-- Resilience4j's @CircuitBreaker/@Retry annotations are woven in via Spring AOP proxies.
+             spring-boot-starter-aop was renamed to spring-boot-starter-aspectj in Spring Boot 4.0. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aspectj</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
