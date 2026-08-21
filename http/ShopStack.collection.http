@@ -1,0 +1,226 @@
+### REGISTER
+
+# Register
+# Creates a new account and returns a JWT. Run this first (or Login, if the account already exists).
+# @name REGISTER
+
+POST {{base_url}}/api/auth/register HTTP/1.1
+Content-Type: application/json
+
+{
+  "username": "alice",
+  "email": "alice@example.com",
+  "password": "Password123!"
+}
+
+### LOGIN
+
+# Login
+# Use this instead of Register once you already have an account - refreshes {{token}} the same way.
+# @name LOGIN
+
+POST {{base_url}}/api/auth/login HTTP/1.1
+Content-Type: application/json
+
+{
+  "username": "alice",
+  "password": "Password123!"
+}
+
+### REFRESH_TOKEN
+
+# Refresh Token
+# Exchanges the current refresh token for a new access token AND a new (rotated) refresh token. Use this once your access token expires (15 min by default) instead of logging in again. The old refresh token stops working the moment this succeeds.
+# @name REFRESH_TOKEN
+
+POST {{base_url}}/api/auth/refresh HTTP/1.1
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refresh_token}}"
+}
+
+### LOGOUT
+
+# Logout
+# Revokes the refresh token server-side. The current access token still works until it naturally expires (it's stateless and can't be revoked), but no new access tokens can be issued from this refresh token anymore.
+# @name LOGOUT
+
+POST {{base_url}}/api/auth/logout HTTP/1.1
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refresh_token}}"
+}
+
+### GET_MY_PROFILE
+
+# Get My Profile
+# @name GET_MY_PROFILE
+
+GET {{base_url}}/api/users/me HTTP/1.1
+Authorization: Bearer {{token}}
+
+### GET_USER_BY_ID
+
+# Get User By Id
+# @name GET_USER_BY_ID
+
+GET {{base_url}}/api/users/{{user_id}} HTTP/1.1
+Authorization: Bearer {{token}}
+
+### LIST_PRODUCTS
+
+# List Products
+# Public - no token required, though sending one doesn't hurt.
+# @name LIST_PRODUCTS
+
+GET {{base_url}}/api/products?page=0
+  &size=20 HTTP/1.1
+Authorization: Bearer {{token}}
+
+### GET_PRODUCT_BY_ID
+
+# Get Product By Id
+# @name GET_PRODUCT_BY_ID
+
+GET {{base_url}}/api/products/{{product_id}} HTTP/1.1
+Authorization: Bearer {{token}}
+
+### CREATE_PRODUCT
+
+# Create Product
+# Protected - requires {{token}}. Auto-saves the returned id into {{product_id}} for the requests below.
+# @name CREATE_PRODUCT
+
+POST {{base_url}}/api/products HTTP/1.1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Keyboard",
+  "description": "Mechanical",
+  "price": 89.99,
+  "stockQuantity": 25,
+  "category": "Electronics"
+}
+
+### UPDATE_PRODUCT
+
+# Update Product
+# @name UPDATE_PRODUCT
+
+PUT {{base_url}}/api/products/{{product_id}} HTTP/1.1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Keyboard (updated)",
+  "description": "Mechanical, hot-swappable",
+  "price": 79.99,
+  "stockQuantity": 30,
+  "category": "Electronics"
+}
+
+### DELETE_PRODUCT
+
+# Delete Product
+# @name DELETE_PRODUCT
+
+DELETE {{base_url}}/api/products/{{product_id}} HTTP/1.1
+Authorization: Bearer {{token}}
+
+### GET_CART
+
+# Get Cart
+# @name GET_CART
+
+GET {{base_url}}/api/cart HTTP/1.1
+Authorization: Bearer {{token}}
+
+### ADD_ITEM_TO_CART
+
+# Add Item To Cart
+# Uses {{product_id}} auto-saved by "Create Product". Run that first, or set product_id manually in the environment.
+# @name ADD_ITEM_TO_CART
+
+POST {{base_url}}/api/cart/items HTTP/1.1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "productId": {{product_id}},
+  "quantity": 2
+}
+
+### UPDATE_ITEM_QUANTITY
+
+# Update Item Quantity
+# @name UPDATE_ITEM_QUANTITY
+
+PUT {{base_url}}/api/cart/items/{{product_id}} HTTP/1.1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "quantity": 3
+}
+
+### REMOVE_ITEM_FROM_CART
+
+# Remove Item From Cart
+# @name REMOVE_ITEM_FROM_CART
+
+DELETE {{base_url}}/api/cart/items/{{product_id}} HTTP/1.1
+Authorization: Bearer {{token}}
+
+### CLEAR_CART
+
+# Clear Cart
+# @name CLEAR_CART
+
+DELETE {{base_url}}/api/cart HTTP/1.1
+Authorization: Bearer {{token}}
+
+### CHECKOUT
+
+# Checkout
+# Requires items in the cart first, and paymentMethod is now required (CREDIT_CARD, PAYPAL, or CASH). The card number here is the standard Luhn-valid test number. Orders over $1000 (payment.decline-above-amount) deterministically decline with a 402, so you can test that path by adding a higher-priced item. Auto-saves the returned order id into {{order_id}}. After this succeeds, run `docker compose logs -f notification-service` - within a second or two you'll see an 'Order confirmation ->' log line appear, published asynchronously via Redis Streams. This response doesn't wait on that at all.
+# @name CHECKOUT
+
+POST {{base_url}}/api/orders/checkout HTTP/1.1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "shippingAddress": "123 Main St",
+  "paymentMethod": "CREDIT_CARD",
+  "cardNumber": "4111111111111111",
+  "cardHolderName": "Alice Smith",
+  "expiryMonth": "12",
+  "expiryYear": "30"
+}
+
+### LIST_MY_ORDERS
+
+# List My Orders
+# @name LIST_MY_ORDERS
+
+GET {{base_url}}/api/orders HTTP/1.1
+Authorization: Bearer {{token}}
+
+### GET_ORDER_BY_ID
+
+# Get Order By Id
+# @name GET_ORDER_BY_ID
+
+GET {{base_url}}/api/orders/{{order_id}} HTTP/1.1
+Authorization: Bearer {{token}}
+
+### CANCEL_ORDER
+
+# Cancel Order
+# @name CANCEL_ORDER
+
+POST {{base_url}}/api/orders/{{order_id}}/cancel HTTP/1.1
+Authorization: Bearer {{token}}
