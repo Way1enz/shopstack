@@ -1,0 +1,112 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      # covers unit + Testcontainers integration tests; docker-java.properties
+      # already pins the API version, same fix as local Docker 29+
+      - name: Build and test (Maven reactor)
+        run: mvn -B -ntp verify
+
+      - name: Upload surefire/failsafe reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: '**/target/surefire-reports/**'
+          retention-days: 5
+
+  docker-build:
+    needs: build-test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service:
+          - eureka-server
+          - api-gateway
+          - user-service
+          - product-service
+          - cart-service
+          - order-service
+          - notification-service
+    steps:
+      - uses: actions/checkout@v4
+
+      # gha cache export needs the docker-container driver, not the plain
+      # docker one build-push-action uses by default
+      - uses: docker/setup-buildx-action@v3
+
+      # context is repo root - Dockerfiles need every pom.xml for the reactor
+      - name: Build ${{ matrix.service }} image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.service }}/Dockerfile
+          push: false
+          tags: ecommerce/${{ matrix.service }}:ci
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+
+  smoke-test:
+    needs: docker-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start full stack
+        run: docker compose up -d --build
+
+      # gateway/user-service have no healthcheck, only service_started - poll
+      # instead of assuming they're ready right after compose returns
+      - name: Wait for gateway to route (register a user)
+        run: |
+          for i in $(seq 1 24); do
+            code=$(curl -s -o /tmp/resp.json -w '%{http_code}' -X POST http://localhost:8080/api/auth/register \
+              -H "Content-Type: application/json" \
+              -d '{"username":"ciuser","email":"ci@example.com","password":"Password123!"}') || code=000
+            if [ "$code" = "200" ] || [ "$code" = "201" ]; then
+              echo "Registered on attempt $i"
+              cat /tmp/resp.json
+              grep -q '"token"' /tmp/resp.json
+              exit 0
+            fi
+            echo "Attempt $i: HTTP $code, retrying in 5s"
+            sleep 5
+          done
+          echo "Gateway never came up cleanly"
+          docker compose ps
+          exit 1
+
+      - name: Dump logs on failure
+        if: failure()
+        run: docker compose logs
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v

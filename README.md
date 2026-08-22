@@ -1,5 +1,7 @@
 # ShopStack
 
+[![CI](https://github.com/Way1enz/shopstack/actions/workflows/ci.yml/badge.svg)](https://github.com/Way1enz/shopstack/actions/workflows/ci.yml)
+
 Backend microservices project simulating an e-commerce application.
 
 ## Starting services with Docker
