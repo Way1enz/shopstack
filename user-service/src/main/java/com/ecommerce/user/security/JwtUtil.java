@@ -28,11 +28,11 @@ public class JwtUtil {
     public String generateToken(User user) {
         Instant now = Instant.now();
         return Jwts.builder()
-                .setSubject(String.valueOf(user.getId()))
+                .subject(String.valueOf(user.getId()))
                 .claim("username", user.getUsername())
                 .claim("role", user.getRole())
-                .setIssuedAt(Date.from(now))
-                .setExpiration(Date.from(now.plusMillis(expirationMs)))
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(now.plusMillis(expirationMs)))
                 .signWith(signingKey)
                 .compact();
     }

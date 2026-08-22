@@ -23,11 +23,11 @@ public class JwtValidator {
     // Returns null if the token is missing, expired, malformed, or has a bad signature.
     public Claims validate(String token) {
         try {
-            return Jwts.parserBuilder()
-                    .setSigningKey(signingKey)
+            return Jwts.parser()
+                    .verifyWith(signingKey)
                     .build()
-                    .parseClaimsJws(token)
-                    .getBody();
+                    .parseSignedClaims(token)
+                    .getPayload();
         } catch (JwtException | IllegalArgumentException e) {
             return null;
         }

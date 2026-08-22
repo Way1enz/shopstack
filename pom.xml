@@ -28,7 +28,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spring-boot.version>4.1.0</spring-boot.version>
         <spring-cloud.version>2025.1.2</spring-cloud.version>
-        <jjwt.version>0.11.5</jjwt.version>
+        <jjwt.version>0.13.0</jjwt.version>
         <!-- io.github.resilience4j:resilience4j-spring-boot4 - the boot3-named module is not
              compatible with our Spring Boot 4 line; boot4 is a separate artifact that tracks
              the same resilience4j release version. -->
