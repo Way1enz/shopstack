@@ -32,12 +32,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-// Real Postgres for the actual order persistence - CartClient/ProductClient are mocked since
-// this test is about order-service's own checkout/persistence logic, not re-testing
-// cart-service or product-service (those get their own integration tests). Redis isn't
-// spun up here either - OrderEventPublisher's fire-and-forget try/catch means a real order
-// with no Redis available should still succeed, which step two of the happy-path test
-// actually verifies rather than just assumes.
+// CartClient/ProductClient are mocked - this tests order-service's own persistence logic,
+// not cart-service or product-service. No Redis either: OrderEventPublisher is fire-and-forget,
+// so an order should persist fine without it.
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK,
         properties = "eureka.client.enabled=false")
 @AutoConfigureMockMvc
@@ -78,7 +75,7 @@ class OrderIntegrationTest {
                 .andExpect(jsonPath("$.paymentSummary").value("Cash"))
                 .andExpect(jsonPath("$.totalAmount").value(39.98));
 
-        // Real database check, not trusting the HTTP response alone.
+        // Real database check, not just the HTTP response.
         List<Order> persisted = orderRepository.findByUserIdOrderByCreatedAtDesc(userId);
         assertThat(persisted).hasSize(1);
         assertThat(persisted.get(0).getTotalAmount()).isEqualByComparingTo(new BigDecimal("39.98"));
@@ -100,9 +97,7 @@ class OrderIntegrationTest {
                         .content(body))
                 .andExpect(status().is(402)); // Payment Required
 
-        // The real point of this test: stock was decremented (mocked above, so we can't
-        // verify the actual number here) but no order should exist in the real database -
-        // a declined payment must never leave a persisted order behind.
+        // A declined payment must never leave a persisted order behind.
         assertThat(orderRepository.findByUserIdOrderByCreatedAtDesc(userId)).isEmpty();
     }
 

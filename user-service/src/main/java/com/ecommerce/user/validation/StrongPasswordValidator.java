@@ -7,9 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
-// Rules: 8+ chars, upper, lower, digit, special char, no whitespace. Reports every failing
-// rule at once (via a custom message) rather than a single generic "invalid password" -
-// same reasoning as GlobalExceptionHandler now reporting every bad field at once.
+// Rules: 8+ chars, upper, lower, digit, special char, no whitespace. Reports every failing rule at once.
 public class StrongPasswordValidator implements ConstraintValidator<StrongPassword, String> {
 
     private static final Pattern HAS_UPPER = Pattern.compile("[A-Z]");

@@ -52,15 +52,14 @@ public class ProductController {
         return ResponseEntity.noContent().build();
     }
 
-    // Internal only - called by order-service during checkout, not routed through the gateway.
+    // Internal only - called by order-service, not routed through the gateway.
     @PostMapping("/{id}/decrement-stock")
     public ProductResponse decrementStock(@PathVariable Long id, @RequestParam int quantity,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
         return ProductResponse.from(productService.decrementStock(id, quantity, idempotencyKey));
     }
 
-    // Internal only - called by order-service when a payment declines after stock was
-    // already reserved, or when cancelling a paid order.
+    // Internal only - called by order-service on a declined payment or order cancellation.
     @PostMapping("/{id}/restock")
     public ProductResponse restock(@PathVariable Long id, @RequestParam int quantity,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {

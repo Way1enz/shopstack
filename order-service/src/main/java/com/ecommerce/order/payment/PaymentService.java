@@ -44,9 +44,8 @@ public class PaymentService {
 
         validateExpiry(request.expiryMonth(), request.expiryYear());
 
-        // Simulated authorization - deterministic decline above a configurable threshold
-        // (default $1000), so the decline path is actually reachable and testable rather
-        // than random. Real gateways obviously don't decline on amount alone.
+        // Deterministic decline above a configurable threshold (default $1000), so the
+        // decline path is actually testable rather than random.
         if (amount.compareTo(declineAboveAmount) > 0) {
             throw new ApiException(HttpStatus.PAYMENT_REQUIRED,
                     "Card declined: amount $" + amount + " exceeds the simulated authorization limit of $" + declineAboveAmount);

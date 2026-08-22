@@ -20,7 +20,7 @@ public interface ProductClient {
     ProductDTO decrementStock(@PathVariable("id") Long id, @RequestParam("quantity") int quantity,
                                @RequestHeader("Idempotency-Key") String idempotencyKey);
 
-    /** Releases previously-decremented stock - used when payment fails/declines after stock was reserved, and when cancelling a paid order. */
+    /** Releases previously-decremented stock - declined payment or order cancellation. */
     @PostMapping("/api/products/{id}/restock")
     ProductDTO restock(@PathVariable("id") Long id, @RequestParam("quantity") int quantity,
                         @RequestHeader("Idempotency-Key") String idempotencyKey);

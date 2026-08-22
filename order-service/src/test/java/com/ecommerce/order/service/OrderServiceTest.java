@@ -131,9 +131,7 @@ class OrderServiceTest {
 
     @Test
     void checkout_restockItselfFails_doesNotMaskOriginalPaymentError() {
-        // The restock compensation call failing (e.g. product-service briefly down) must never
-        // hide the real reason checkout failed - the original payment exception should still
-        // be what the caller sees, per restockOne()'s catch-and-log behavior.
+        // The restock call failing must never hide the real payment exception (restockOne() catches and logs).
         Long userId = 1L;
         CartDTO.CartItemDTO item = new CartDTO.CartItemDTO(10L, "Widget", new BigDecimal("19.99"), 1);
         CartDTO cart = new CartDTO(userId, List.of(item));

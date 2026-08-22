@@ -18,21 +18,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-// Pilot for session 2's Testcontainers work: proves the mechanism (real Postgres, real HTTP
-// layer, real Spring context) works end to end before this pattern gets copied to
-// product-service, order-service, and cart-service.
-//
-// eureka.client.enabled=false: without this, the full app context tries to register with a
-// Eureka server that doesn't exist in the test environment, causing slow connection-refused
-// retries on every test run for no benefit - this test only cares about the HTTP+DB behavior.
+// eureka.client.enabled=false: skips slow connection-refused retries against a non-existent Eureka server.
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK,
         properties = "eureka.client.enabled=false")
 @AutoConfigureMockMvc
 @Testcontainers
 class AuthIntegrationTest {
 
-    // Same image docker-compose.yml actually uses, so this test reflects the real deployment
-    // target rather than whatever Testcontainers' own default Postgres version happens to be.
+    // Same image docker-compose.yml uses.
     @Container
     @ServiceConnection
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
@@ -59,8 +52,7 @@ class AuthIntegrationTest {
                 .andExpect(jsonPath("$.token").isNotEmpty())
                 .andExpect(jsonPath("$.refreshToken").isNotEmpty());
 
-        // The password actually made it through BCrypt, not stored as plaintext - real
-        // end-to-end proof, not just "the endpoint returned 201".
+        // Confirms password is actually hashed, not stored as plaintext.
         String storedPassword = userRepository.findByUsername("alice").orElseThrow().getPassword();
         assertThat(storedPassword).isNotEqualTo("Password123!");
         assertThat(storedPassword).startsWith("$2"); // BCrypt hash prefix
@@ -83,8 +75,7 @@ class AuthIntegrationTest {
                         .content(body))
                 .andExpect(status().isCreated());
 
-        // Second registration with the same username - real uniqueness enforcement against
-        // the actual database, not a mocked "assume it works" check.
+        // Second registration with the same username should fail.
         String duplicateBody = objectMapper.writeValueAsString(
                 new RegisterPayload("bob", "different-email@example.com", "Password123!"));
         mockMvc.perform(post("/api/auth/register")
@@ -109,9 +100,7 @@ class AuthIntegrationTest {
                 .andExpect(status().isUnauthorized());
     }
 
-    // Plain local records instead of importing RegisterRequest/LoginRequest directly - keeps
-    // this test decoupled from the exact production DTO shape, which matters less here than
-    // proving the wire format works.
+    // Local records instead of importing the production DTOs directly - keeps this test decoupled.
     private record RegisterPayload(String username, String email, String password) {
     }
 

@@ -37,11 +37,7 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of(status.value(), "Downstream service error: " + ex.getMessage()));
     }
 
-    // Without this, a missing required header (e.g. X-User-Id, which the gateway always sets
-    // on a normal request path) would fall through to the generic 500 handler below instead
-    // of the honest 400 it actually is - our own @RestControllerAdvice takes priority over
-    // Spring's built-in default handling for this exception, since it technically matches
-    // the Exception.class catch-all too.
+    // Without this, a missing X-User-Id header falls through to the generic 500 handler below.
     @ExceptionHandler(MissingRequestHeaderException.class)
     public ResponseEntity<ErrorResponse> handleMissingHeader(MissingRequestHeaderException ex) {
         return ResponseEntity.badRequest().body(ErrorResponse.of(400, "Missing required header: " + ex.getHeaderName()));
@@ -49,8 +45,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex) {
-        // Reports every failing field at once, not just the first one - so a request with
-        // three bad fields doesn't take three separate round trips to fully diagnose.
+        // Reports every failing field at once, not just the first.
         String message = ex.getBindingResult().getFieldErrors().stream()
                 .map(fe -> fe.getField() + " " + fe.getDefaultMessage())
                 .collect(Collectors.joining("; "));

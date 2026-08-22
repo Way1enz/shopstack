@@ -35,11 +35,8 @@ public class OrderService {
     private final OrderEventPublisher orderEventPublisher;
     private final PaymentService paymentService;
 
-    // cart-service (read) -> decrement stock per item -> validate & process payment ->
-    // persist Order -> clear cart -> publish event (fire-and-forget). If payment fails
-    // AFTER stock was already decremented, everything already decremented is restocked
-    // before the error propagates - mirrors a real authorize/reserve-then-capture flow:
-    // never leave stock reserved for an order that was never actually paid for.
+    // cart -> decrement stock -> payment -> persist -> clear cart -> publish event.
+    // If payment fails after stock was decremented, everything decremented is restocked.
     @Transactional
     public Order checkout(Long userId, CheckoutRequest request) {
         CartDTO cart = cartClient.getCart(userId);
@@ -107,11 +104,8 @@ public class OrderService {
         return order;
     }
 
-    // Checkout now goes straight to PAID (there's no separate "awaiting payment" state
-    // in this synchronous flow - see checkout() above), so cancellation is allowed for
-    // PAID orders too, not just CREATED. Only SHIPPED and already-CANCELLED orders are
-    // blocked. Cancelling a paid order also releases its reserved stock back to
-    // product-service, since checkout had decremented it.
+    // PAID orders can still be cancelled (checkout goes straight to PAID, no pending state).
+    // Only SHIPPED/CANCELLED are blocked. Cancelling restores the reserved stock.
     @Transactional
     public Order cancel(Long userId, Long orderId) {
         Order order = getById(userId, orderId);
@@ -126,9 +120,7 @@ public class OrderService {
         return orderRepository.save(order);
     }
 
-    // Failures here are logged, not thrown - this runs both as compensation for an
-    // already-failed payment (don't mask the original error) and as part of a
-    // cancellation the user explicitly asked for.
+    // Failures are logged, not thrown, so they never mask the original payment error.
     private void releaseReservedStock(List<CartDTO.CartItemDTO> items) {
         for (CartDTO.CartItemDTO item : items) {
             restockOne(item.productId(), item.quantity());

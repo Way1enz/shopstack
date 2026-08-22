@@ -9,9 +9,7 @@ public record CheckoutRequest(
         @NotNull(message = "is required")
         PaymentMethod paymentMethod,
 
-        // Required only when paymentMethod = CREDIT_CARD - validated in PaymentService
-        // rather than declaratively here, since "required if X" isn't something Bean
-        // Validation expresses cleanly on its own.
+        // Required only when paymentMethod = CREDIT_CARD - validated in PaymentService instead.
         String cardNumber,
         String cardHolderName,
         String expiryMonth,

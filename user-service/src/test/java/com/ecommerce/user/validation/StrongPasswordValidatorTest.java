@@ -14,9 +14,7 @@ class StrongPasswordValidatorTest {
 
     private final StrongPasswordValidator validator = new StrongPasswordValidator();
 
-    // A real ConstraintValidatorContext requires a chain of calls
-    // (buildConstraintViolationWithTemplate(...).addConstraintViolation()) that a plain mock()
-    // won't satisfy without stubbing every step - deep stubs makes the whole chain just work.
+    // Deep stubs so the buildConstraintViolationWithTemplate(...).addConstraintViolation() chain just works.
     private ConstraintValidatorContext context() {
         return mock(ConstraintValidatorContext.class, RETURNS_DEEP_STUBS);
     }

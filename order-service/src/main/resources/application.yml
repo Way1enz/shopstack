@@ -32,9 +32,8 @@ eureka:
     prefer-ip-address: true
 
 payment:
-  # Simulated credit card authorization decline threshold - no real payment
-  # gateway is involved. Orders above this amount deterministically decline,
-  # so the failure path is actually testable rather than random.
+  # Simulated decline threshold (no real payment gateway) - deterministic so the
+  # failure path is actually testable.
   decline-above-amount: ${PAYMENT_DECLINE_ABOVE_AMOUNT:1000.00}
 
 # Feign per-client timeouts - Resilience4j's TimeLimiter needs async returns, doesn't fit
@@ -104,3 +103,14 @@ management:
     web:
       exposure:
         include: health,info,circuitbreakers,retries
+  tracing:
+    sampling:
+      probability: 1.0
+    export:
+      zipkin:
+        endpoint: http://${ZIPKIN_HOST:localhost}:9411/api/v2/spans
+
+logging:
+  pattern:
+    correlation: "[${spring.application.name:},%X{traceId:-},%X{spanId:-}] "
+  include-application-name: false

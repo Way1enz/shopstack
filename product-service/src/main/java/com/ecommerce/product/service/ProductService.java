@@ -25,9 +25,7 @@ public class ProductService {
     private final IdempotencyGuard idempotencyGuard;
 
     public Page<Product> list(String category, String search, Pageable pageable) {
-        // Listing endpoints are intentionally NOT cached (too many possible
-        // filter/page combinations); only single-product lookups are cached
-        // below, which is where the read traffic concentrates in practice.
+        // Listing isn't cached (too many filter/page combinations); only single-product lookups are.
         if (category != null && !category.isBlank()) {
             return productRepository.findByCategoryIgnoreCase(category, pageable);
         }

@@ -19,10 +19,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-// addFilters = false: this service's own Spring Security chain is deliberately permissive by
-// design (the gateway is what actually enforces auth - see SecurityConfig) so there's nothing
-// meaningful to test in that filter chain here; this test is purely about request validation
-// and HTTP status codes.
+// addFilters = false: auth is enforced at the gateway, not here - this only tests validation.
 @WebMvcTest(AuthController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class AuthControllerTest {
@@ -73,8 +70,7 @@ class AuthControllerTest {
 
     @Test
     void register_weakPassword_returns400() throws Exception {
-        // Missing uppercase, digit, and special character - only the @StrongPassword
-        // constraint (not just @NotBlank) should be what's catching this.
+        // Missing uppercase/digit/special char - should be caught by @StrongPassword, not @NotBlank.
         RegisterRequest request = new RegisterRequest("alice", "alice@example.com", "weakpassword");
 
         mockMvc.perform(post("/api/auth/register")

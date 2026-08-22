@@ -1,8 +1,6 @@
 # ---- Build stage ----
-# NOTE: this Dockerfile expects the build context to be the PROJECT ROOT
-# (docker-compose.yml sets `context: .` and `dockerfile: eureka-server/Dockerfile`)
-# because this is a multi-module Maven reactor project - the parent pom.xml
-# and every module must be visible to resolve versions correctly.
+# Build context must be the project root (see docker-compose.yml) - this is a
+# multi-module Maven reactor, so the parent pom.xml and every module must be visible.
 FROM maven:3.9-eclipse-temurin-25 AS build
 WORKDIR /workspace
 
