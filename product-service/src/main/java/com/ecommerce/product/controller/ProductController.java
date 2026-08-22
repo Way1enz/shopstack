@@ -4,6 +4,9 @@ import com.ecommerce.product.dto.ProductRequest;
 import com.ecommerce.product.dto.ProductResponse;
 import com.ecommerce.product.entity.Product;
 import com.ecommerce.product.service.ProductService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -12,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+@Tag(name = "Product", description = "Reads are public; writes require a Bearer token")
 @RestController
 @RequestMapping("/api/products")
 @RequiredArgsConstructor
@@ -35,17 +39,20 @@ public class ProductController {
     }
 
     /** Protected (gateway requires JWT for non-GET /api/products/**). */
+    @SecurityRequirement(name = "bearerAuth")
     @PostMapping
     public ResponseEntity<ProductResponse> create(@Valid @RequestBody ProductRequest request) {
         Product created = productService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ProductResponse.from(created));
     }
 
+    @SecurityRequirement(name = "bearerAuth")
     @PutMapping("/{id}")
     public ProductResponse update(@PathVariable Long id, @Valid @RequestBody ProductRequest request) {
         return ProductResponse.from(productService.update(id, request));
     }
 
+    @SecurityRequirement(name = "bearerAuth")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         productService.delete(id);
@@ -53,6 +60,10 @@ public class ProductController {
     }
 
     // Internal only - called by order-service, not routed through the gateway.
+    @Operation(
+            summary = "Decrement stock (internal)",
+            description = "Called by order-service during checkout via Feign, guarded by an Idempotency-Key.")
+    @SecurityRequirement(name = "bearerAuth")
     @PostMapping("/{id}/decrement-stock")
     public ProductResponse decrementStock(@PathVariable Long id, @RequestParam int quantity,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
@@ -60,6 +71,11 @@ public class ProductController {
     }
 
     // Internal only - called by order-service on a declined payment or order cancellation.
+    @Operation(
+            summary = "Restock (internal)",
+            description = "Called by order-service on a declined payment or order cancellation, "
+                    + "guarded by an Idempotency-Key.")
+    @SecurityRequirement(name = "bearerAuth")
     @PostMapping("/{id}/restock")
     public ProductResponse restock(@PathVariable Long id, @RequestParam int quantity,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {

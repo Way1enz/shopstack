@@ -51,6 +51,10 @@ With 3 replicas registered in Eureka, you should see the header value rotate acr
 - **api-gateway**: single entry point, routing, JWT validation.
 - **eureka-server**: service registry.
 
+## API Docs
+
+Aggregated Swagger UI at the gateway — <http://localhost:8080/swagger-ui.html>. Dropdown switches between the four REST services; individual services aren't port-mapped to the host. **Authorize** with `Bearer <token>` from `/api/auth/login` to exercise protected endpoints via requests go through the gateway, so auth and rate limiting apply as they would for any other client.
+
 ## Observability
 
 - **Distributed tracing**: Zipkin + Micrometer Tracing (Brave) across every service. Zipkin UI — <http://localhost:9411>.
@@ -107,6 +111,7 @@ Every service also reports spans to Zipkin (<http://localhost:9411>) — omitted
 - Spring Data JPA + PostgreSQL, schema managed with Flyway
 - Spring Data Redis (cache, primary datastore, and Streams)
 - JJWT, with DB-backed rotating refresh tokens
+- springdoc-openapi — Swagger UI aggregated at the gateway
 - Maven multi-module reactor build
 - Docker & Docker Compose
 
