@@ -14,12 +14,9 @@ import org.springframework.stereotype.Component;
 import java.util.HashMap;
 import java.util.Map;
 
-// Fire-and-forget publish to "order-events" - a failure here is only logged, never propagated,
-// so a successful order never fails because Redis happened to be unreachable.
-//
-// Redis Streams has no built-in trace propagation (unlike Feign/RestClient, which get it for
-// free), so the current span context is injected as an extra field on the record and manually
-// re-extracted on the notification-service side - see RedisStreamConfig/OrderEventListener.
+// Fire-and-forget publish - failure is only logged, never propagated, so Redis being down
+// never fails an order. Redis Streams has no built-in trace propagation, so the span context
+// is injected here and re-extracted in notification-service - see OrderEventTracing.
 @Component
 public class OrderEventPublisher {
 

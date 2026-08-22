@@ -176,6 +176,8 @@ services:
     build:
       context: .
       dockerfile: notification-service/Dockerfile
+    ports:
+      - "8085:8085"
     environment:
       EUREKA_URI: http://eureka-server:8761/eureka/
       REDIS_HOST: redis

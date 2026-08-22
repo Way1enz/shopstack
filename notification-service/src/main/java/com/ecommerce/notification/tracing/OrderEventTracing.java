@@ -9,11 +9,9 @@ import java.util.Map;
 
 import static com.ecommerce.notification.config.RedisStreamConfig.STREAM_KEY;
 
-// Shared by OrderEventListener (live consumption) and PendingMessageRecoveryJob (redelivery) -
-// both read the same "traceparent" field OrderEventPublisher injects and continue that trace
-// as a child span, rather than starting an unlinked one. A late-arriving redelivery span is
-// still a true child span here (just tagged "redelivered=true"), not a link to a separate
-// trace: the delay itself is real end-to-end latency worth seeing in Zipkin, not noise to hide.
+// Shared by OrderEventListener and PendingMessageRecoveryJob - both extract the traceparent
+// field OrderEventPublisher injects and continue as a child span rather than a disconnected
+// one, even on redelivery: the delay is real latency worth seeing, not noise to hide.
 public final class OrderEventTracing {
 
     private OrderEventTracing() {

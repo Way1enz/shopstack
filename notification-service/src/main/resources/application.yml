@@ -23,7 +23,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,orderEventRecovery
   tracing:
     sampling:
       probability: 1.0

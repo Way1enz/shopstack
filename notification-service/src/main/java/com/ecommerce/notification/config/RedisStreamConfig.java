@@ -59,10 +59,21 @@ public class RedisStreamConfig {
             org.springframework.data.redis.core.StreamOperations<String, String, String> streamOps = redisTemplate.opsForStream();
             streamOps.createGroup(STREAM_KEY, ReadOffset.from("0"), CONSUMER_GROUP);
         } catch (DataAccessException e) {
-            boolean groupAlreadyExists = e.getMessage() != null && e.getMessage().contains("BUSYGROUP");
-            if (!groupAlreadyExists) {
+            if (!isBusyGroup(e)) {
                 throw e;
             }
         }
+    }
+
+    // RedisSystemException's own getMessage() is just "Error in execution" - the real
+    // "BUSYGROUP" text only lives on the cause, so this walks the chain instead of trusting
+    // the top-level message.
+    private boolean isBusyGroup(Throwable e) {
+        for (Throwable t = e; t != null; t = t.getCause()) {
+            if (t.getMessage() != null && t.getMessage().contains("BUSYGROUP")) {
+                return true;
+            }
+        }
+        return false;
     }
 }
