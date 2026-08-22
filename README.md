@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/Way1enz/shopstack/actions/workflows/ci.yml/badge.svg)](https://github.com/Way1enz/shopstack/actions/workflows/ci.yml)
 
-Backend microservices project simulating an e-commerce application.
+A backend microservices project simulating an e-commerce application.
 
 ## Starting services with Docker
 
@@ -47,7 +47,7 @@ With 3 replicas registered in Eureka, you should see the header value rotate acr
 - **product-service**: product catalog, Redis as a cache in front of Postgres.
 - **cart-service**: shopping cart, Redis as the only datastore.
 - **order-service**: checkout, order history, publishes order events to Redis Streams.
-- **notification-service**: consumes order events, no client-facing REST API — its actuator port (`:8085`) is exposed to the host for ops access (e.g. triggering crash recovery on demand), the one exception to "only the gateway is public."
+- **notification-service**: consumes order events, no client-facing REST API — its actuator port is exposed to the host for ops access.
 - **api-gateway**: single entry point, routing, JWT validation.
 - **eureka-server**: service registry.
 
@@ -144,10 +144,6 @@ docker run --rm \
 | Load balancing (instance header) | [`product-service/.../config/InstanceIdFilter.java`](product-service/src/main/java/com/ecommerce/product/config/InstanceIdFilter.java) |
 | Circuit breaker/retry wrappers | [`order-service/.../client/resilient/`](order-service/src/main/java/com/ecommerce/order/client/resilient) |
 | Gateway rate limit key resolution | [`api-gateway/.../filter/RateLimiterKeyResolver.java`](api-gateway/src/main/java/com/ecommerce/gateway/filter/RateLimiterKeyResolver.java) |
-| Trace context injection (Redis Streams publish) | [`order-service/.../event/OrderEventPublisher.java`](order-service/src/main/java/com/ecommerce/order/event/OrderEventPublisher.java) |
-| Trace context extraction + span (Redis Streams consume) | [`notification-service/.../tracing/OrderEventTracing.java`](notification-service/src/main/java/com/ecommerce/notification/tracing/OrderEventTracing.java) |
-| Consumer group setup / crash recovery | [`notification-service/.../config/RedisStreamConfig.java`](notification-service/src/main/java/com/ecommerce/notification/config/RedisStreamConfig.java) |
-| On-demand recovery trigger (actuator) | [`notification-service/.../actuator/OrderEventRecoveryEndpoint.java`](notification-service/src/main/java/com/ecommerce/notification/actuator/OrderEventRecoveryEndpoint.java) |
 
 
 
