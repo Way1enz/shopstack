@@ -1,0 +1,14 @@
+version: 2
+updates:
+  # root pom manages versions via BOM imports (Spring Boot, Spring Cloud) -
+  # scanning root covers all 7 modules without a directory per service
+  - package-ecosystem: maven
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
