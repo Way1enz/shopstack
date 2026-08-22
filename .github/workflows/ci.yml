@@ -64,7 +64,7 @@ jobs:
 
       # context is repo root - Dockerfiles need every pom.xml for the reactor
       - name: Build ${{ matrix.service }} image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ${{ matrix.service }}/Dockerfile
