@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.YearMonth;
 
-// No real payment gateway - validates the details and simulates authorization. Malformed
+// No real payment gateway. Validates the details and simulates authorization. Malformed
 // input (bad card, failed Luhn check, expired) is a 400; a valid card that's declined is a 402.
 @Service
 public class PaymentService {
@@ -45,7 +45,7 @@ public class PaymentService {
         validateExpiry(request.expiryMonth(), request.expiryYear());
 
         // Deterministic decline above a configurable threshold (default $1000), so the
-        // decline path is actually testable rather than random.
+        // decline path is testable.
         if (amount.compareTo(declineAboveAmount) > 0) {
             throw new ApiException(HttpStatus.PAYMENT_REQUIRED,
                     "Card declined: amount $" + amount + " exceeds the simulated authorization limit of $" + declineAboveAmount);
@@ -88,7 +88,7 @@ public class PaymentService {
         return "PayPal (" + email + ")";
     }
 
-    // Luhn algorithm - doubles every second digit from the right (subtracting 9 if
+    // Luhn algorithm: doubles every second digit from the right (subtracting 9 if
     // that exceeds 9); a valid number's digits sum to a multiple of 10.
     private boolean luhnCheck(String digits) {
         int sum = 0;

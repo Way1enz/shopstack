@@ -1,6 +1,6 @@
 version: 2
 updates:
-  # root pom manages versions via BOM imports (Spring Boot, Spring Cloud) -
+  # root pom manages versions via BOM imports (Spring Boot, Spring Cloud), so
   # scanning root covers all 7 modules without a directory per service
   - package-ecosystem: maven
     directory: /

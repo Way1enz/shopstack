@@ -117,7 +117,7 @@ class OrderServiceTest {
         assertThatThrownBy(() -> orderService.checkout(userId, request))
                 .isSameAs(declineException);
 
-        // Stock was already decremented for both items before payment ran - both must be released.
+        // Stock was already decremented for both items before payment ran, so both must be released.
         verify(productClient).decrementStock(eq(10L), eq(2), anyString());
         verify(productClient).decrementStock(eq(20L), eq(1), anyString());
         verify(productClient).restock(eq(10L), eq(2), anyString());

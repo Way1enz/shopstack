@@ -5,7 +5,7 @@ import org.springframework.boot.actuate.endpoint.annotation.Endpoint;
 import org.springframework.boot.actuate.endpoint.annotation.WriteOperation;
 import org.springframework.stereotype.Component;
 
-// Manual trigger for PendingMessageRecoveryJob - same scan as the @Scheduled cadence, on demand.
+// Manual trigger for PendingMessageRecoveryJob: same scan as the @Scheduled cadence, on demand.
 // POST /actuator/orderEventRecovery. Internal only, not routed through the gateway.
 @Component
 @Endpoint(id = "orderEventRecovery")

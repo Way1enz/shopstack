@@ -38,7 +38,7 @@ class RefreshTokenServiceTest {
     @BeforeEach
     void setUp() {
         user = User.builder().id(1L).username("alice").build();
-        // @Value fields aren't populated outside a Spring context - set it directly,
+        // @Value fields aren't populated outside a Spring context, so it's set directly,
         // matching the application.yml default (jwt.refresh-expiration-ms: 604800000, 7 days).
         ReflectionTestUtils.setField(refreshTokenService, "refreshExpirationMs", 604_800_000L);
     }

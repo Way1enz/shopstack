@@ -143,7 +143,7 @@ public class OrderService {
     }
 
     // Generated once by the initiator, passed as a plain argument into the resilience-wrapped
-    // Feign call - see ResilientProductClient for why it can't be generated inside the retry.
+    // Feign call; see ResilientProductClient for why it can't be generated inside the retry.
     private String newIdempotencyKey() {
         return UUID.randomUUID().toString();
     }

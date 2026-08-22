@@ -9,9 +9,9 @@ import java.util.Map;
 
 import static com.ecommerce.notification.config.RedisStreamConfig.STREAM_KEY;
 
-// Shared by OrderEventListener and PendingMessageRecoveryJob - both extract the traceparent
+// Shared by OrderEventListener and PendingMessageRecoveryJob: both extract the traceparent
 // field OrderEventPublisher injects and continue as a child span rather than a disconnected
-// one, even on redelivery: the delay is real latency worth seeing, not noise to hide.
+// one, even on redelivery.
 public final class OrderEventTracing {
 
     private OrderEventTracing() {

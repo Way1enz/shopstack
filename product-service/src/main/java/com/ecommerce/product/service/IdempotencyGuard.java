@@ -8,7 +8,7 @@ import java.time.Instant;
 
 // Backs decrementStock/restock against a retried call that actually succeeded but whose
 // response was lost. order-service holds one Idempotency-Key fixed across all retries of a
-// given logical operation; claim() is an atomic Redis SETNX - whoever sets the key first
+// given logical operation; claim() is an atomic Redis SETNX: whoever sets the key first
 // proceeds with the mutation, everyone else with that key is told it's a duplicate.
 @Component
 public class IdempotencyGuard {

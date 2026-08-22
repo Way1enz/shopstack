@@ -5,8 +5,8 @@ import lombok.*;
 
 import java.time.Instant;
 
-// Opaque, DB-backed token (not a JWT) - a random string validated by DB lookup, which is what
-// lets it actually be revoked. Only one is valid per user at a time (rotated on every use).
+// Opaque, DB-backed token (not a JWT): a random string validated by DB lookup, which lets it
+// be revoked. Only one is valid per user at a time (rotated on every use).
 @Entity
 @Table(name = "refresh_tokens")
 @Getter

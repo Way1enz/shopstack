@@ -21,7 +21,7 @@ public class ResilientProductClient {
         this.productClient = productClient;
     }
 
-    // No fallback - 4xx (e.g. insufficient stock) is excluded from retry in application.yml,
+    // No fallback: 4xx (e.g. insufficient stock) is excluded from retry in application.yml,
     // so anything reaching here should propagate and let checkout() restock what it can.
     @CircuitBreaker(name = INSTANCE)
     @Retry(name = INSTANCE)
@@ -29,7 +29,7 @@ public class ResilientProductClient {
         return productClient.decrementStock(productId, quantity, idempotencyKey);
     }
 
-    // restock is itself a compensating action - OrderService.restockOne() already
+    // restock is itself a compensating action. OrderService.restockOne() already
     // catches/logs failures here, so no fallback needed at this layer either.
     @CircuitBreaker(name = INSTANCE)
     @Retry(name = INSTANCE)

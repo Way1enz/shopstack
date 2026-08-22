@@ -13,7 +13,7 @@ spring:
     password: ${DB_PASSWORD:ecommerce}
   jpa:
     hibernate:
-      # Flyway owns schema changes (see db/migration/) - Hibernate just validates its
+      # Flyway owns schema changes (see db/migration/). Hibernate just validates its
       # entity mappings match the real schema at startup, failing fast on drift.
       ddl-auto: validate
     show-sql: false

@@ -24,5 +24,9 @@ Thumbs.db
 # Docker
 docker-data/
 
-# Local reference doc, not part of the public repo
-PROJECT_GUIDE.md
+# Local doc
+development.md
+pitfalls.xml
+
+# Local scripts helpers
+scripts/

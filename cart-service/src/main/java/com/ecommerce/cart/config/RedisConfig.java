@@ -19,7 +19,7 @@ public class RedisConfig {
     public RedisTemplate<String, Cart> cartRedisTemplate(RedisConnectionFactory connectionFactory) {
         // Cart.updatedAt is a java.time.Instant, and the no-arg
         // GenericJackson2JsonRedisSerializer() builds an ObjectMapper with no
-        // JavaTimeModule - hence this explicit setup.
+        // JavaTimeModule, hence this explicit setup.
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);

@@ -62,7 +62,7 @@ jobs:
       # docker one build-push-action uses by default
       - uses: docker/setup-buildx-action@v4
 
-      # context is repo root - Dockerfiles need every pom.xml for the reactor
+      # context is repo root: Dockerfiles need every pom.xml for the reactor
       - name: Build ${{ matrix.service }} image
         uses: docker/build-push-action@v7
         with:
@@ -82,7 +82,7 @@ jobs:
       - name: Start full stack
         run: docker compose up -d --build
 
-      # gateway/user-service have no healthcheck, only service_started - poll
+      # gateway/user-service have no healthcheck, only service_started, so poll
       # instead of assuming they're ready right after compose returns
       - name: Wait for gateway to route (register a user)
         run: |

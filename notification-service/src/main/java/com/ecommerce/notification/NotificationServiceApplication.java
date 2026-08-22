@@ -4,7 +4,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-// Background Redis Streams consumer, no REST API - listens on "order-events" and simulates
+// Background Redis Streams consumer, no REST API. Listens on "order-events" and simulates
 // sending an order confirmation. Nothing calls this service; it only consumes.
 @SpringBootApplication
 @EnableScheduling

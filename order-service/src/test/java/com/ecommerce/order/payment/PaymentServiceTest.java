@@ -20,7 +20,7 @@ class PaymentServiceTest {
     @BeforeEach
     void setUp() {
         paymentService = new PaymentService();
-        // @Value fields aren't populated outside a Spring context - set it directly,
+        // @Value fields aren't populated outside a Spring context, so it's set directly,
         // matching the application.yml default (payment.decline-above-amount: 1000.00).
         ReflectionTestUtils.setField(paymentService, "declineAboveAmount", new BigDecimal("1000.00"));
     }
@@ -60,7 +60,7 @@ class PaymentServiceTest {
 
     @Test
     void creditCard_nonDigitCharacters_throwsBadRequest() {
-        // Only whitespace gets stripped, not dashes - a dash-formatted number is rejected as-is.
+        // Only whitespace gets stripped, not dashes, so a dash-formatted number is rejected as-is.
         CheckoutRequest request = creditCard("4111-1111-1111-1111", "Alice Smith", "12", "30");
 
         assertThatThrownBy(() -> paymentService.validateAndProcess(PaymentMethod.CREDIT_CARD, new BigDecimal("50.00"), request))

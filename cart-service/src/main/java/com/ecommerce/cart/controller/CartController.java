@@ -4,11 +4,13 @@ import com.ecommerce.cart.dto.AddItemRequest;
 import com.ecommerce.cart.dto.UpdateQuantityRequest;
 import com.ecommerce.cart.model.Cart;
 import com.ecommerce.cart.service.CartService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
-// X-User-Id here comes from the gateway's AuthFilter, already validated - that's the Redis key.
+// X-User-Id here comes from the gateway's AuthFilter, already validated. That's the Redis key.
+@Tag(name = "Cart", description = "Shopping cart - requires a Bearer token")
 @RestController
 @RequestMapping("/api/cart")
 @RequiredArgsConstructor

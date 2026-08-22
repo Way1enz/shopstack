@@ -9,7 +9,7 @@ import org.springframework.stereotype.Repository;
 import java.time.Duration;
 import java.util.Optional;
 
-// No JPA/Postgres here - Redis is the whole database. Sliding TTL means abandoned carts clean
+// No JPA/Postgres here: Redis is the whole database. Sliding TTL means abandoned carts clean
 // themselves up automatically.
 @Repository
 @RequiredArgsConstructor

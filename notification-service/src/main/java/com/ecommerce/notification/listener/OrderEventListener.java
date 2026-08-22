@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 import static com.ecommerce.notification.config.RedisStreamConfig.CONSUMER_GROUP;
 import static com.ecommerce.notification.config.RedisStreamConfig.STREAM_KEY;
 
-// Only acknowledges after handleOrderCreated() succeeds - if it throws, the message stays
+// Only acknowledges after handleOrderCreated() succeeds. If it throws, the message stays
 // unacknowledged and PendingMessageRecoveryJob picks it up later.
 @Component
 public class OrderEventListener implements StreamListener<String, MapRecord<String, String, String>> {

@@ -25,7 +25,7 @@ public class GlobalExceptionHandler {
     }
 
     // Without this, a missing required header (e.g. X-User-Id) would fall through to the
-    // generic 500 handler below instead of the honest 400 it actually is.
+    // generic 500 handler below instead of the 400 it should be.
     @ExceptionHandler(MissingRequestHeaderException.class)
     public ResponseEntity<ErrorResponse> handleMissingHeader(MissingRequestHeaderException ex) {
         return ResponseEntity.badRequest().body(ErrorResponse.of(400, "Missing required header: " + ex.getHeaderName()));

@@ -32,7 +32,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-// CartClient/ProductClient are mocked - this tests order-service's own persistence logic,
+// CartClient/ProductClient are mocked: this tests order-service's own persistence logic,
 // not cart-service or product-service. No Redis either: OrderEventPublisher is fire-and-forget,
 // so an order should persist fine without it.
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK,
@@ -41,9 +41,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Testcontainers
 class OrderIntegrationTest {
 
+    // Same image docker-compose.yml uses.
     @Container
     @ServiceConnection
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17-alpine");
 
     @Autowired
     private MockMvc mockMvc;

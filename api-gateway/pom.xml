@@ -33,11 +33,18 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-zipkin</artifactId>
         </dependency>
-        <!-- Backs Spring Cloud Gateway's RedisRateLimiter (reactive - the blocking
+        <!-- Backs Spring Cloud Gateway's RedisRateLimiter (reactive; the blocking
              spring-boot-starter-data-redis won't wire a ReactiveRedisConnectionFactory). -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis-reactive</artifactId>
+        </dependency>
+        <!-- Aggregates each service's OpenAPI docs into one Swagger UI at the gateway.
+             Webflux flavor, not webmvc, since Spring Cloud Gateway is reactive. -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
+            <version>${springdoc.version}</version>
         </dependency>
 
         <!-- JWT validation -->

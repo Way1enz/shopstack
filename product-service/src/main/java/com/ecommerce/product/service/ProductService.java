@@ -94,7 +94,7 @@ public class ProductService {
             product.setStockQuantity(product.getStockQuantity() - quantity);
             return productRepository.save(product);
         } catch (RuntimeException failure) {
-            // Claim was premature - nothing was actually decremented, so a legitimate retry
+            // Claim was premature: nothing was actually decremented, so a legitimate retry
             // must not be told "already done".
             if (hasKey(idempotencyKey)) {
                 idempotencyGuard.release("decrement-stock:" + id, idempotencyKey);
@@ -103,7 +103,7 @@ public class ProductService {
         }
     }
 
-    // Releases stock reserved via decrementStock() - declined payment or cancelled order.
+    // Releases stock reserved via decrementStock(): declined payment or cancelled order.
     @Transactional
     @CacheEvict(cacheNames = "products", key = "#id")
     public Product restock(Long id, int quantity, String idempotencyKey) {

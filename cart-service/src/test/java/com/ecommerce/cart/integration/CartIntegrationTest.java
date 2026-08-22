@@ -23,7 +23,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-// Real Redis - the actual database here, not a cache. ProductClient is mocked.
+// Real Redis: the actual database here, not a cache. ProductClient is mocked.
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK,
         properties = "eureka.client.enabled=false")
 @AutoConfigureMockMvc
@@ -59,7 +59,7 @@ class CartIntegrationTest {
                 .andExpect(jsonPath("$.items[0].productId").value(10))
                 .andExpect(jsonPath("$.items[0].quantity").value(2));
 
-        // Separate GET, not just the POST response - proves the write actually landed in Redis.
+        // Separate GET, not just the POST response, to confirm the write landed in Redis.
         mockMvc.perform(get("/api/cart").header("X-User-Id", userId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].productName").value("Keyboard"));

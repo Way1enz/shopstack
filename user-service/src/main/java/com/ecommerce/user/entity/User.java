@@ -27,7 +27,7 @@ public class User {
     @Column(nullable = false, length = 120)
     private String email;
 
-    /** BCrypt hash - the raw password is never stored or logged. */
+    /** BCrypt hash; the raw password is never stored or logged. */
     @Column(nullable = false)
     private String password;
 

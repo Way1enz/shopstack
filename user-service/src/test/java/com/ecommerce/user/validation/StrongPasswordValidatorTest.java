@@ -21,7 +21,7 @@ class StrongPasswordValidatorTest {
 
     @Test
     void nullPassword_isValid() {
-        // @NotBlank on the field handles null/blank separately - this validator only judges content.
+        // @NotBlank on the field handles null/blank separately; this validator only judges content.
         assertThat(validator.isValid(null, context())).isTrue();
     }
 

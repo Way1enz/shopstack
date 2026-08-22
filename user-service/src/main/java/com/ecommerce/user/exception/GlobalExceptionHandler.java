@@ -20,7 +20,7 @@ public class GlobalExceptionHandler {
     }
 
     // Without this, a missing required header (e.g. X-User-Id) would fall through to the
-    // generic 500 handler below instead of the honest 400 it actually is.
+    // generic 500 handler below instead of the 400 it should be.
     @ExceptionHandler(MissingRequestHeaderException.class)
     public ResponseEntity<ErrorResponse> handleMissingHeader(MissingRequestHeaderException ex) {
         return ResponseEntity.badRequest().body(ErrorResponse.of(400, "Missing required header: " + ex.getHeaderName()));
@@ -28,7 +28,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex) {
-        // Reports every failing field at once, not just the first one - e.g. a bad
+        // Reports every failing field at once, not just the first one, e.g. a bad
         // username AND a weak password both show up in one response instead of two
         // round trips.
         String message = ex.getBindingResult().getFieldErrors().stream()

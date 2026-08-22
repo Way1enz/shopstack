@@ -32,11 +32,11 @@ eureka:
     prefer-ip-address: true
 
 payment:
-  # Simulated decline threshold (no real payment gateway) - deterministic so the
+  # Simulated decline threshold (no real payment gateway), deterministic so the
   # failure path is actually testable.
   decline-above-amount: ${PAYMENT_DECLINE_ABOVE_AMOUNT:1000.00}
 
-# Feign per-client timeouts - Resilience4j's TimeLimiter needs async returns, doesn't fit
+# Feign per-client timeouts. Resilience4j's TimeLimiter needs async returns, doesn't fit
 # blocking Feign calls, so the per-attempt time bound lives here instead.
 feign:
   client:
@@ -73,7 +73,7 @@ resilience4j:
         automatic-transition-from-open-to-half-open-enabled: true
   retry:
     instances:
-      # getCart (read-only) and clearCart (idempotent) - safe to retry unconditionally.
+      # getCart (read-only) and clearCart (idempotent): safe to retry unconditionally.
       cart-service:
         max-attempts: 3
         wait-duration: 200ms
@@ -81,7 +81,7 @@ resilience4j:
         exponential-backoff-multiplier: 2
         ignore-exceptions:
           - io.github.resilience4j.circuitbreaker.CallNotPermittedException
-      # decrementStock/restock are mutations - only retry failures that plausibly never
+      # decrementStock/restock are mutations: only retry failures that plausibly never
       # reached product-service. 4xx means it already ran and rejected the request on its
       # merits (e.g. 409 insufficient stock), so it's excluded.
       product-service:

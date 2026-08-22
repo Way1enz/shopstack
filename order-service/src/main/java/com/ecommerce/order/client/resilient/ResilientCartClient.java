@@ -23,7 +23,7 @@ public class ResilientCartClient {
         this.cartClient = cartClient;
     }
 
-    // No fallback - checkout can't proceed without a cart, so this propagates to a 503.
+    // No fallback: checkout can't proceed without a cart, so this propagates to a 503.
     @CircuitBreaker(name = INSTANCE)
     @Retry(name = INSTANCE)
     public CartDTO getCart(Long userId) {

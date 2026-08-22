@@ -20,6 +20,12 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
+        <!-- OpenAPI/Swagger UI: webmvc flavor, matching this service's servlet stack. -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>${springdoc.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
@@ -50,8 +56,8 @@
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
         </dependency>
-        <!-- Officially built/tested by Spring Boot for each release, unlike springdoc - no
-             explicit version needed. Flyway 10+ split Postgres support into its own artifact. -->
+        <!-- Officially built/tested by Spring Boot for each release, unlike springdoc, so no
+             explicit version is needed. Flyway 10+ split Postgres support into its own artifact. -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-flyway</artifactId>

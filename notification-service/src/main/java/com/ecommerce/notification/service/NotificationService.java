@@ -21,7 +21,7 @@ public class NotificationService {
     }
 
     // Simulated send (swap the log line for a real email/SMS integration later). Idempotency
-    // check matters because Redis Streams delivery is at-least-once - without it a redelivered
+    // check matters because Redis Streams delivery is at-least-once; without it a redelivered
     // message would send a duplicate confirmation.
     public void handleOrderCreated(Map<String, String> fields, String recordId) {
         String orderId = fields.get("orderId");

@@ -22,7 +22,7 @@ public class RedisStreamConfig {
 
     public static final String CONSUMER_GROUP = "notification-service-group";
 
-    // Fixed, not random/host-based - lets a crashed container recover its own pending backlog
+    // Fixed, not random/host-based, so a crashed container can recover its own pending backlog
     // (see PendingMessageRecoveryJob). Multiple replicas would need unique names instead.
     public static final String CONSUMER_NAME = "notification-consumer-1";
 
@@ -42,7 +42,7 @@ public class RedisStreamConfig {
         StreamMessageListenerContainer<String, MapRecord<String, String, String>> container =
                 StreamMessageListenerContainer.create(connectionFactory, options);
 
-        // Manual ack - onMessage() must call acknowledge() itself after processing succeeds.
+        // Manual ack: onMessage() must call acknowledge() itself after processing succeeds.
         container.receive(
                 Consumer.from(CONSUMER_GROUP, CONSUMER_NAME),
                 StreamOffset.create(STREAM_KEY, ReadOffset.lastConsumed()),
@@ -65,7 +65,7 @@ public class RedisStreamConfig {
         }
     }
 
-    // RedisSystemException's own getMessage() is just "Error in execution" - the real
+    // RedisSystemException's own getMessage() is just "Error in execution". The real
     // "BUSYGROUP" text only lives on the cause, so this walks the chain instead of trusting
     // the top-level message.
     private boolean isBusyGroup(Throwable e) {

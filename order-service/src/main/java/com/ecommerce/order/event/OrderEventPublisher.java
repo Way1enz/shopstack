@@ -14,9 +14,9 @@ import org.springframework.stereotype.Component;
 import java.util.HashMap;
 import java.util.Map;
 
-// Fire-and-forget publish - failure is only logged, never propagated, so Redis being down
+// Fire-and-forget publish: failure is only logged, never propagated, so Redis being down
 // never fails an order. Redis Streams has no built-in trace propagation, so the span context
-// is injected here and re-extracted in notification-service - see OrderEventTracing.
+// is injected here and re-extracted in notification-service; see OrderEventTracing.
 @Component
 public class OrderEventPublisher {
 
@@ -58,7 +58,7 @@ public class OrderEventPublisher {
     }
 
     // No active span (e.g. called from a test or a scheduled job) just means the consumer
-    // starts a fresh, unlinked trace - not an error case worth failing the publish over.
+    // starts a fresh, unlinked trace instead of failing the publish.
     private void injectTraceContext(Map<String, String> fields) {
         Span currentSpan = tracer.currentSpan();
         if (currentSpan != null) {

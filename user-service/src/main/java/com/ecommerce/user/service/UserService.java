@@ -55,7 +55,7 @@ public class UserService {
         return issueTokens(user);
     }
 
-    // Rotates the refresh token on every use - the old one dies immediately, so a stolen and
+    // Rotates the refresh token on every use. The old one dies immediately, so a stolen and
     // replayed token stops working the moment the real client refreshes.
     @Transactional
     public AuthResponse refresh(String refreshTokenValue) {

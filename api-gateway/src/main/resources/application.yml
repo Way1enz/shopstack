@@ -16,7 +16,7 @@ spring:
             locator:
               enabled: false
           routes:
-            # ---- Auth (register/login) - public, IP-keyed (brute-force target) ----
+            # ---- Auth (register/login): public, IP-keyed (brute-force target) ----
             - id: auth-service
               uri: lb://USER-SERVICE
               predicates:
@@ -29,7 +29,7 @@ spring:
                     redis-rate-limiter.requestedTokens: 1
                     key-resolver: "#{@rateLimiterKeyResolver}"
 
-            # ---- User profile - requires a valid JWT ----
+            # ---- User profile: requires a valid JWT ----
             - id: user-service
               uri: lb://USER-SERVICE
               predicates:
@@ -43,7 +43,7 @@ spring:
                     redis-rate-limiter.requestedTokens: 1
                     key-resolver: "#{@rateLimiterKeyResolver}"
 
-            # ---- Product catalog: browsing is public - IP-keyed ----
+            # ---- Product catalog: browsing is public, IP-keyed ----
             - id: product-service-read
               uri: lb://PRODUCT-SERVICE
               predicates:
@@ -72,7 +72,7 @@ spring:
                     redis-rate-limiter.requestedTokens: 1
                     key-resolver: "#{@rateLimiterKeyResolver}"
 
-            # ---- Cart - always requires a valid JWT ----
+            # ---- Cart: always requires a valid JWT ----
             - id: cart-service
               uri: lb://CART-SERVICE
               predicates:
@@ -86,7 +86,7 @@ spring:
                     redis-rate-limiter.requestedTokens: 1
                     key-resolver: "#{@rateLimiterKeyResolver}"
 
-            # ---- Orders - always requires a valid JWT. Lower burst - checkout fans out
+            # ---- Orders: always requires a valid JWT. Lower burst, since checkout fans out
             # into cart-service + N product-service calls downstream. ----
             - id: order-service
               uri: lb://ORDER-SERVICE
@@ -101,6 +101,36 @@ spring:
                     redis-rate-limiter.requestedTokens: 1
                     key-resolver: "#{@rateLimiterKeyResolver}"
 
+            # ---- OpenAPI docs: public, no AuthFilter. Proxied so the aggregated Swagger UI
+            # below can fetch them same-origin, without exposing each service's port to the host. ----
+            - id: user-service-docs
+              uri: lb://USER-SERVICE
+              predicates:
+                - Path=/user-service/v3/api-docs
+              filters:
+                - RewritePath=/user-service/v3/api-docs, /v3/api-docs
+
+            - id: product-service-docs
+              uri: lb://PRODUCT-SERVICE
+              predicates:
+                - Path=/product-service/v3/api-docs
+              filters:
+                - RewritePath=/product-service/v3/api-docs, /v3/api-docs
+
+            - id: cart-service-docs
+              uri: lb://CART-SERVICE
+              predicates:
+                - Path=/cart-service/v3/api-docs
+              filters:
+                - RewritePath=/cart-service/v3/api-docs, /v3/api-docs
+
+            - id: order-service-docs
+              uri: lb://ORDER-SERVICE
+              predicates:
+                - Path=/order-service/v3/api-docs
+              filters:
+                - RewritePath=/order-service/v3/api-docs, /v3/api-docs
+
 eureka:
   client:
     service-url:
@@ -110,6 +140,21 @@ eureka:
 
 jwt:
   secret: ${JWT_SECRET:change-this-super-secret-key-min-32-chars-long}
+
+# One Swagger UI at the gateway (http://localhost:8080/swagger-ui.html) aggregating all
+# four services via a dropdown, instead of four separate UIs on ports the host can't
+# even reach. Each URL below resolves through the docs routes just above.
+springdoc:
+  swagger-ui:
+    urls:
+      - name: User Service
+        url: /user-service/v3/api-docs
+      - name: Product Service
+        url: /product-service/v3/api-docs
+      - name: Cart Service
+        url: /cart-service/v3/api-docs
+      - name: Order Service
+        url: /order-service/v3/api-docs
 
 management:
   endpoints:
@@ -121,7 +166,7 @@ management:
       access: read-only
   tracing:
     sampling:
-      # 100% for local/portfolio use so every request shows up in Zipkin - drop this
+      # 100% for local/portfolio use so every request shows up in Zipkin. Drop this
       # to something like 0.1 before it ever sees real traffic.
       probability: 1.0
     export:

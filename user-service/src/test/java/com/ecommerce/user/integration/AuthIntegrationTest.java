@@ -28,7 +28,7 @@ class AuthIntegrationTest {
     // Same image docker-compose.yml uses.
     @Container
     @ServiceConnection
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17-alpine");
 
     @Autowired
     private MockMvc mockMvc;
@@ -100,7 +100,7 @@ class AuthIntegrationTest {
                 .andExpect(status().isUnauthorized());
     }
 
-    // Local records instead of importing the production DTOs directly - keeps this test decoupled.
+    // Local records instead of importing the production DTOs directly, to keep this test decoupled.
     private record RegisterPayload(String username, String email, String password) {
     }
 

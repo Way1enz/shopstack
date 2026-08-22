@@ -9,7 +9,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
-// Only used for password hashing here - the gateway already handles JWT auth, so the filter
+// Only used for password hashing here: the gateway already handles JWT auth, so the filter
 // chain itself stays permissive (this service is internal-only anyway).
 @Configuration
 @EnableWebSecurity

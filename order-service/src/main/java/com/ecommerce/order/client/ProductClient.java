@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 
-/** Resolved through Eureka by application name - no hardcoded host/port. */
+/** Resolved through Eureka by application name; no hardcoded host/port. */
 @FeignClient(name = "product-service")
 public interface ProductClient {
 
@@ -15,12 +15,12 @@ public interface ProductClient {
     ProductDTO getProduct(@PathVariable("id") Long id);
 
     /** Atomically decrements stock as part of checkout; internal service-to-service call.
-     *  idempotencyKey: see ResilientProductClient - keeps a retried call from re-applying. */
+     *  idempotencyKey: see ResilientProductClient, which keeps a retried call from re-applying. */
     @PostMapping("/api/products/{id}/decrement-stock")
     ProductDTO decrementStock(@PathVariable("id") Long id, @RequestParam("quantity") int quantity,
                                @RequestHeader("Idempotency-Key") String idempotencyKey);
 
-    /** Releases previously-decremented stock - declined payment or order cancellation. */
+    /** Releases previously-decremented stock; declined payment or order cancellation. */
     @PostMapping("/api/products/{id}/restock")
     ProductDTO restock(@PathVariable("id") Long id, @RequestParam("quantity") int quantity,
                         @RequestHeader("Idempotency-Key") String idempotencyKey);
