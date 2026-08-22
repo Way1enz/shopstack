@@ -135,11 +135,8 @@ docker run --rm \
 | Topic | Location |
 |---|---|
 | JWT validation | [`api-gateway/.../filter/AuthFilter.java`](api-gateway/src/main/java/com/ecommerce/gateway/filter/AuthFilter.java) |
-| Password rules | [`user-service/.../validation/StrongPasswordValidator.java`](user-service/src/main/java/com/ecommerce/user/validation/StrongPasswordValidator.java) |
 | Refresh token rotation | [`user-service/.../service/RefreshTokenService.java`](user-service/src/main/java/com/ecommerce/user/service/RefreshTokenService.java) |
-| Payment validation (Luhn) | [`order-service/.../payment/PaymentService.java`](order-service/src/main/java/com/ecommerce/order/payment/PaymentService.java) |
 | Checkout orchestration | [`order-service/.../service/OrderService.java`](order-service/src/main/java/com/ecommerce/order/service/OrderService.java) |
-| Redis Streams consumer | [`notification-service/.../listener/OrderEventListener.java`](notification-service/src/main/java/com/ecommerce/notification/listener/OrderEventListener.java) |
 | Gateway routes | [`api-gateway/.../resources/application.yml`](api-gateway/src/main/resources/application.yml) |
 | Load balancing (instance header) | [`product-service/.../config/InstanceIdFilter.java`](product-service/src/main/java/com/ecommerce/product/config/InstanceIdFilter.java) |
 | Circuit breaker/retry wrappers | [`order-service/.../client/resilient/`](order-service/src/main/java/com/ecommerce/order/client/resilient) |
