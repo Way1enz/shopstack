@@ -47,6 +47,19 @@ services:
     networks:
       - ecommerce-net
 
+  zipkin:
+    image: openzipkin/zipkin:latest
+    ports:
+      - "9411:9411"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9411/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - ecommerce-net
+
   eureka-server:
     build:
       context: .
@@ -76,10 +89,13 @@ services:
       JWT_SECRET: ${JWT_SECRET:-change-this-super-secret-key-min-32-chars-long}
       JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-900000}
       JWT_REFRESH_EXPIRATION_MS: ${JWT_REFRESH_EXPIRATION_MS:-604800000}
+      ZIPKIN_HOST: zipkin
     depends_on:
       postgres:
         condition: service_healthy
       eureka-server:
+        condition: service_healthy
+      zipkin:
         condition: service_healthy
     networks:
       - ecommerce-net
@@ -97,12 +113,15 @@ services:
       DB_PASSWORD: ecommerce
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      ZIPKIN_HOST: zipkin
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
       eureka-server:
+        condition: service_healthy
+      zipkin:
         condition: service_healthy
     networks:
       - ecommerce-net
@@ -115,10 +134,13 @@ services:
       EUREKA_URI: http://eureka-server:8761/eureka/
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      ZIPKIN_HOST: zipkin
     depends_on:
       redis:
         condition: service_healthy
       eureka-server:
+        condition: service_healthy
+      zipkin:
         condition: service_healthy
     networks:
       - ecommerce-net
@@ -137,12 +159,15 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       PAYMENT_DECLINE_ABOVE_AMOUNT: ${PAYMENT_DECLINE_ABOVE_AMOUNT:-1000.00}
+      ZIPKIN_HOST: zipkin
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
       eureka-server:
+        condition: service_healthy
+      zipkin:
         condition: service_healthy
     networks:
       - ecommerce-net
@@ -151,14 +176,19 @@ services:
     build:
       context: .
       dockerfile: notification-service/Dockerfile
+    ports:
+      - "8085:8085"
     environment:
       EUREKA_URI: http://eureka-server:8761/eureka/
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      ZIPKIN_HOST: zipkin
     depends_on:
       redis:
         condition: service_healthy
       eureka-server:
+        condition: service_healthy
+      zipkin:
         condition: service_healthy
     networks:
       - ecommerce-net
@@ -174,10 +204,13 @@ services:
       JWT_SECRET: ${JWT_SECRET:-change-this-super-secret-key-min-32-chars-long}
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      ZIPKIN_HOST: zipkin
     depends_on:
       eureka-server:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      zipkin:
         condition: service_healthy
       user-service:
         condition: service_started

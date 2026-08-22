@@ -45,9 +45,15 @@ With 3 replicas registered in Eureka, you should see the header value rotate acr
 - **product-service**: product catalog, Redis as a cache in front of Postgres.
 - **cart-service**: shopping cart, Redis as the only datastore.
 - **order-service**: checkout, order history, publishes order events to Redis Streams.
-- **notification-service**: consumes order events, no REST API of its own.
+- **notification-service**: consumes order events, no client-facing REST API — its actuator port (`:8085`) is exposed to the host for ops access (e.g. triggering crash recovery on demand), the one exception to "only the gateway is public."
 - **api-gateway**: single entry point, routing, JWT validation.
 - **eureka-server**: service registry.
+
+## Observability
+
+- **Distributed tracing**: Zipkin + Micrometer Tracing (Brave) across every service. Zipkin UI — <http://localhost:9411>.
+- **Async trace propagation**: HTTP/Feign hops get trace context for free; the Redis Streams hop (`order-service` → `notification-service`) doesn't, so context is manually injected on publish and extracted on consume — see `event/OrderEventPublisher.java` and `tracing/OrderEventTracing.java`. A redelivered message (crash recovery) continues the *same* trace as a tagged child span rather than starting a disconnected one.
+- **On-demand crash recovery**: `notification-service`'s pending-message recovery job runs on a schedule, or immediately via `POST http://localhost:8085/actuator/orderEventRecovery`.
 
 ## Resilience
 
@@ -85,15 +91,17 @@ With 3 replicas registered in Eureka, you should see the header value rotate acr
    └────────▲────────┘ :8080 (single public entry point)          ▼
             │                                          ┌──────────────────────┐
             │                                          │ notification-service │
-          client                                       │ :8085 (no REST API - │
-    (browser / frontend)                               │ background consumer) │
+          client                                       │ :8085 (no client API │
+    (browser / frontend)                               │ - actuator exposed)  │
                                                        └──────────────────────┘
 ```
+Every service also reports spans to Zipkin (<http://localhost:9411>) — omitted above to keep the request-flow diagram readable; see the Observability section.
 
 ## Tech stack
 
 - Java 25 (virtual threads enabled), Spring Boot 4.1.0, Spring Cloud 2025.1.2
 - Resilience4j (circuit breaker, retry) on order-service's Feign clients; Redis rate limiting on the gateway
+- Micrometer Tracing + Zipkin (Brave) — distributed tracing across every service, including manual propagation over the Redis Streams hop
 - Spring Data JPA + PostgreSQL, schema managed with Flyway
 - Spring Data Redis (cache, primary datastore, and Streams)
 - JJWT, with DB-backed rotating refresh tokens
@@ -134,6 +142,10 @@ docker run --rm \
 | Load balancing (instance header) | [`product-service/.../config/InstanceIdFilter.java`](product-service/src/main/java/com/ecommerce/product/config/InstanceIdFilter.java) |
 | Circuit breaker/retry wrappers | [`order-service/.../client/resilient/`](order-service/src/main/java/com/ecommerce/order/client/resilient) |
 | Gateway rate limit key resolution | [`api-gateway/.../filter/RateLimiterKeyResolver.java`](api-gateway/src/main/java/com/ecommerce/gateway/filter/RateLimiterKeyResolver.java) |
+| Trace context injection (Redis Streams publish) | [`order-service/.../event/OrderEventPublisher.java`](order-service/src/main/java/com/ecommerce/order/event/OrderEventPublisher.java) |
+| Trace context extraction + span (Redis Streams consume) | [`notification-service/.../tracing/OrderEventTracing.java`](notification-service/src/main/java/com/ecommerce/notification/tracing/OrderEventTracing.java) |
+| Consumer group setup / crash recovery | [`notification-service/.../config/RedisStreamConfig.java`](notification-service/src/main/java/com/ecommerce/notification/config/RedisStreamConfig.java) |
+| On-demand recovery trigger (actuator) | [`notification-service/.../actuator/OrderEventRecoveryEndpoint.java`](notification-service/src/main/java/com/ecommerce/notification/actuator/OrderEventRecoveryEndpoint.java) |
 
 
 
