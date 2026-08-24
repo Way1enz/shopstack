@@ -1,0 +1,31 @@
+name: Cache cleanup
+
+on:
+  schedule:
+    - cron: '0 3 * * 0'  # weekly
+  workflow_dispatch:
+
+permissions:
+  actions: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      # mode=max regenerates cache blobs every run instead of reusing them, accumulating
+      - name: Prune old per-service caches, keep the newest each
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          SERVICES="eureka-server api-gateway user-service product-service cart-service order-service notification-service"
+          ALL=$(gh api --paginate "/repos/${GH_REPO}/actions/caches?per_page=100" --jq '.actions_caches[] | "\(.id)\t\(.created_at)\t\(.key)"')
+          for svc in $SERVICES; do
+            GROUP=$(echo "$ALL" | grep "$svc" || true)
+            [ -z "$GROUP" ] && continue
+            OLD_IDS=$(echo "$GROUP" | sort -t$'\t' -k2 -r | tail -n +2 | cut -f1)
+            for id in $OLD_IDS; do
+              echo "Deleting old $svc cache: $id"
+              gh cache delete "$id" || true
+            done
+          done
