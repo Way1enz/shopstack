@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 FROM maven:3.9-eclipse-temurin-25 AS build
 WORKDIR /workspace
 
@@ -12,11 +13,13 @@ COPY notification-service/pom.xml notification-service/pom.xml
 
 # Resolves and caches every dependency the reactor needs before any source file is
 # copied in, so this layer stays cached across rebuilds that only touch cart-service/src.
-RUN mvn -B -pl cart-service -am dependency:go-offline
+RUN --mount=type=cache,target=/root/.m2,id=maven-cache \
+    mvn -B -pl cart-service -am dependency:go-offline
 
 COPY cart-service/src cart-service/src
 
-RUN mvn -B -pl cart-service -am package -DskipTests
+RUN --mount=type=cache,target=/root/.m2,id=maven-cache \
+    mvn -B -pl cart-service -am package -DskipTests
 
 FROM eclipse-temurin:25-jre-jammy
 WORKDIR /app

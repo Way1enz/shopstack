@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # ---- Build stage ----
 # Build context must be the project root (see docker-compose.yml): this is a
 # multi-module Maven reactor, so the parent pom.xml and every module must be visible.
@@ -15,11 +16,13 @@ COPY notification-service/pom.xml notification-service/pom.xml
 
 # Resolves and caches every dependency the reactor needs before any source file is
 # copied in, so this layer stays cached across rebuilds that only touch eureka-server/src.
-RUN mvn -B -pl eureka-server -am dependency:go-offline
+RUN --mount=type=cache,target=/root/.m2,id=maven-cache \
+    mvn -B -pl eureka-server -am dependency:go-offline
 
 COPY eureka-server/src eureka-server/src
 
-RUN mvn -B -pl eureka-server -am package -DskipTests
+RUN --mount=type=cache,target=/root/.m2,id=maven-cache \
+    mvn -B -pl eureka-server -am package -DskipTests
 
 # ---- Runtime stage ----
 FROM eclipse-temurin:25-jre-jammy

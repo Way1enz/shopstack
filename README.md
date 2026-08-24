@@ -7,7 +7,6 @@ A backend microservices project simulating an e-commerce application.
 ## Starting services with Docker
 
 Clone the repo, then from the project root:
-
 ```bash
 docker compose up --build
 ```
@@ -17,6 +16,15 @@ Starts Postgres and Redis, then Eureka, then every service, then the gateway las
 - Discovery Server (Eureka): <http://localhost:8761>
 - API entry point (Gateway): <http://localhost:8080>
 
+On Colima (or any manual Docker Engine setup), `buildx` may not be installed or automatically wired up. If so, install the plugin and link it manually:
+```bash
+brew install docker-buildx  # or use your package manager
+mkdir -p ~/.docker/cli-plugins
+ln -sfn "$(brew --prefix docker-buildx)/bin/docker-buildx" ~/.docker/cli-plugins/docker-buildx
+docker buildx version
+```
+
+To shut it down, press Ctrl-C, or run one of the following commands in another terminal:
 ```bash
 docker compose down      # stop, keep data
 docker compose down -v   # stop and wipe all data
@@ -115,7 +123,7 @@ Every service also reports spans to Zipkin (<http://localhost:9411>).
 
 Everything under `scripts/` except `test.sh` assumes a stack is already running (`docker compose up --build`). Run order and flag details: [`scripts/README.md`](scripts/README.md).
 
-**Setup and teardown**
+**Setup**
 - `test.sh`: runs the Maven reactor's tests (unit plus Testcontainers integration). Detects Colima and wires its socket automatically; falls back to the default Docker context (Docker Desktop, plain Docker CLI) otherwise.
 
 **Functional checks**
@@ -129,6 +137,8 @@ Everything under `scripts/` except `test.sh` assumes a stack is already running 
 - `rate-limiting.sh`: hammers the login route past its token bucket, watches 400s turn into 429s.
 - `circuit-breaker.sh`: kills product-service mid-traffic, watches the circuit open then self-heal.
 - `observability.sh`: traces a full checkout across every service; `--crash-recovery` also proves a redelivered message continues the same trace.
+
+For more detail, or to adapt a script for your own testing, open it directly — each one is self-contained and safe to edit.
 
 If your local JDK is newer than Java 25, `mvn`/`test.sh` may hit Lombok errors (`cannot find symbol: method builder()`). Run Maven in a matching container instead:
 ```bash
