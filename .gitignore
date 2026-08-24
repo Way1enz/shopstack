@@ -24,9 +24,7 @@ Thumbs.db
 # Docker
 docker-data/
 
-# Local doc
+# Local
 development.md
 pitfalls.xml
-
-# Local scripts helpers
-scripts/
+scripts/cleanup.sh

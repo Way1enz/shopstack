@@ -23,17 +23,25 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
+  cloud:
+    loadbalancer:
+      # Same reasoning as api-gateway's application.yml: default 35s, stacks on top of
+      # eureka.client.registry-fetch-interval-seconds below.
+      cache:
+        ttl: 5s
 
 eureka:
   client:
     service-url:
       defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
+    # Default is 30s; see api-gateway's application.yml for why this is tuned down here too.
+    registry-fetch-interval-seconds: 5
   instance:
     prefer-ip-address: true
 
 payment:
   # Simulated decline threshold (no real payment gateway), deterministic so the
-  # failure path is actually testable.
+  # failure path is testable.
   decline-above-amount: ${PAYMENT_DECLINE_ABOVE_AMOUNT:1000.00}
 
 # Feign per-client timeouts. Resilience4j's TimeLimiter needs async returns, doesn't fit

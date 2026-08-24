@@ -66,6 +66,11 @@ services:
       dockerfile: eureka-server/Dockerfile
     ports:
       - "8761:8761"
+    mem_limit: 512m
+    environment:
+      # MaxRAMPercentage is computed against the mem_limit above (JVM reads the container's
+      # cgroup limit automatically), not the host's total RAM.
+      JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0"
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8761/actuator/health"]
       interval: 10s
@@ -79,7 +84,9 @@ services:
     build:
       context: .
       dockerfile: user-service/Dockerfile
+    mem_limit: 768m
     environment:
+      JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0"
       EUREKA_URI: http://eureka-server:8761/eureka/
       DB_HOST: postgres
       DB_PORT: 5432
@@ -104,7 +111,9 @@ services:
     build:
       context: .
       dockerfile: product-service/Dockerfile
+    mem_limit: 768m
     environment:
+      JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0"
       EUREKA_URI: http://eureka-server:8761/eureka/
       DB_HOST: postgres
       DB_PORT: 5432
@@ -130,7 +139,9 @@ services:
     build:
       context: .
       dockerfile: cart-service/Dockerfile
+    mem_limit: 512m
     environment:
+      JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0"
       EUREKA_URI: http://eureka-server:8761/eureka/
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -149,7 +160,9 @@ services:
     build:
       context: .
       dockerfile: order-service/Dockerfile
+    mem_limit: 768m
     environment:
+      JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0"
       EUREKA_URI: http://eureka-server:8761/eureka/
       DB_HOST: postgres
       DB_PORT: 5432
@@ -178,7 +191,9 @@ services:
       dockerfile: notification-service/Dockerfile
     ports:
       - "8085:8085"
+    mem_limit: 512m
     environment:
+      JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0"
       EUREKA_URI: http://eureka-server:8761/eureka/
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -199,7 +214,9 @@ services:
       dockerfile: api-gateway/Dockerfile
     ports:
       - "8080:8080"
+    mem_limit: 768m
     environment:
+      JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0"
       EUREKA_URI: http://eureka-server:8761/eureka/
       JWT_SECRET: ${JWT_SECRET:-change-this-super-secret-key-min-32-chars-long}
       REDIS_HOST: redis

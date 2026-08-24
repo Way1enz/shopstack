@@ -10,6 +10,10 @@ COPY cart-service/pom.xml cart-service/pom.xml
 COPY order-service/pom.xml order-service/pom.xml
 COPY notification-service/pom.xml notification-service/pom.xml
 
+# Resolves and caches every dependency the reactor needs before any source file is
+# copied in, so this layer stays cached across rebuilds that only touch user-service/src.
+RUN mvn -B -pl user-service -am dependency:go-offline
+
 COPY user-service/src user-service/src
 
 RUN mvn -B -pl user-service -am package -DskipTests

@@ -1,0 +1,11 @@
+.git
+.github
+*/target
+target
+*.md
+.idea
+*.iml
+.vscode
+.DS_Store
+http
+scripts

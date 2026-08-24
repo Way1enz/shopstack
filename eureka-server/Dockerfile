@@ -13,6 +13,10 @@ COPY cart-service/pom.xml cart-service/pom.xml
 COPY order-service/pom.xml order-service/pom.xml
 COPY notification-service/pom.xml notification-service/pom.xml
 
+# Resolves and caches every dependency the reactor needs before any source file is
+# copied in, so this layer stays cached across rebuilds that only touch eureka-server/src.
+RUN mvn -B -pl eureka-server -am dependency:go-offline
+
 COPY eureka-server/src eureka-server/src
 
 RUN mvn -B -pl eureka-server -am package -DskipTests

@@ -9,6 +9,11 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
   cloud:
+    loadbalancer:
+      # Default is 35s and stacks on top of eureka.client.registry-fetch-interval-seconds
+      # above, so the two together were masking newly scaled instances for up to ~65s.
+      cache:
+        ttl: 5s
     gateway:
       server:
         webflux:
@@ -135,6 +140,9 @@ eureka:
   client:
     service-url:
       defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
+    # Default is 30s. At this scale, a 30s-stale view of the registry means a
+    # freshly scaled or crashed instance takes too long to be reflected here.
+    registry-fetch-interval-seconds: 5
   instance:
     prefer-ip-address: true
 

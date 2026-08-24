@@ -17,6 +17,12 @@ eureka:
     fetch-registry: false
     service-url:
       defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
+  server:
+    # Self-preservation exists to protect against mass false-eviction during a real
+    # network partition between Eureka peers. This is a standalone single-node server,
+    # so that scenario can't happen, and leaving it on means a burst of container churn
+    # (e.g. scaling a service down) can trip it and stop evicting dead instances entirely.
+    enable-self-preservation: false
 
 management:
   endpoints:

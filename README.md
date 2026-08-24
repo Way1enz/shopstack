@@ -6,14 +6,16 @@ A backend microservices project simulating an e-commerce application.
 
 ## Starting services with Docker
 
+Clone the repo, then from the project root:
+
 ```bash
 docker compose up --build
 ```
 
 Starts Postgres and Redis, then Eureka, then every service, then the gateway last.
 
-- Discovery Server (Eureka) — <http://localhost:8761>
-- API entry point (Gateway) — <http://localhost:8080>
+- Discovery Server (Eureka): <http://localhost:8761>
+- API entry point (Gateway): <http://localhost:8080>
 
 ```bash
 docker compose down      # stop, keep data
@@ -22,24 +24,20 @@ docker compose down -v   # stop and wipe all data
 
 ## Scaling and load balancing
 
-Any service can be scaled to multiple replicas — no fixed `container_name` entries exist in `docker-compose.yml`, so Compose handles naming automatically.
+Any service can be scaled to multiple replicas. No fixed `container_name` entries exist in `docker-compose.yml`, so Compose handles naming automatically.
 
-Start with multiple replicas (replace the normal startup command):
+Start with multiple replicas from the beginning:
 ```bash
 docker compose up --build --scale product-service=3
 ```
 
-Scale up/down while already running — no restart needed:
+Scale up or down while already running, no restart needed:
 ```bash
 docker compose up --scale product-service=5 --no-recreate -d
 docker compose up --scale product-service=1 --no-recreate -d
 ```
 
-Every response from `product-service` includes an `X-Instance-Id` header containing the container's hostname, so you can observe Spring Cloud LoadBalancer distributing requests across instances:
-```bash
-for i in {1..10}; do curl -s -D - http://localhost:8080/api/products -o /dev/null | grep X-Instance-Id; done
-```
-With 3 replicas registered in Eureka, you should see the header value rotate across 3 different container IDs. Verify all replicas registered at <http://localhost:8761> under `PRODUCT-SERVICE` before running the loop — allow ~30 seconds after startup for registration.
+`scripts/load-balancing.sh` scales `product-service`, waits for every replica to register with Eureka, then sends requests through the gateway and confirms the `X-Instance-Id` response header actually rotates across instances.
 
 ## Services
 
@@ -47,24 +45,24 @@ With 3 replicas registered in Eureka, you should see the header value rotate acr
 - **product-service**: product catalog, Redis as a cache in front of Postgres.
 - **cart-service**: shopping cart, Redis as the only datastore.
 - **order-service**: checkout, order history, publishes order events to Redis Streams.
-- **notification-service**: consumes order events, no client-facing REST API — its actuator port is exposed to the host for ops access.
+- **notification-service**: consumes order events, no client-facing REST API. Its actuator port is exposed to the host for ops access.
 - **api-gateway**: single entry point, routing, JWT validation.
 - **eureka-server**: service registry.
 
 ## API Docs
 
-Aggregated Swagger UI at the gateway — <http://localhost:8080/swagger-ui.html>. Dropdown switches between the four REST services; individual services aren't port-mapped to the host. **Authorize** with `Bearer <token>` from `/api/auth/login` to exercise protected endpoints via requests go through the gateway, so auth and rate limiting apply as they would for any other client.
+Aggregated Swagger UI at the gateway: <http://localhost:8080/swagger-ui.html>. The dropdown switches between the four REST services; individual services aren't port-mapped to the host. Authorize with `Bearer <token>` from `/api/auth/login` to exercise protected endpoints. Requests go through the gateway, so auth and rate limiting apply the same as they would for any other client.
 
 ## Observability
 
-- **Distributed tracing**: Zipkin + Micrometer Tracing (Brave) across every service. Zipkin UI — <http://localhost:9411>.
-- **Async trace propagation**: HTTP/Feign hops get trace context for free; the Redis Streams hop (`order-service` → `notification-service`) doesn't, so context is manually injected on publish and extracted on consume — see `event/OrderEventPublisher.java` and `tracing/OrderEventTracing.java`. A redelivered message (crash recovery) continues the *same* trace as a tagged child span rather than starting a disconnected one.
+- **Distributed tracing**: Zipkin + Micrometer Tracing (Brave) across every service. Zipkin UI: <http://localhost:9411>.
+- **Async trace propagation**: HTTP/Feign hops get trace context for free. The Redis Streams hop (`order-service` to `notification-service`) doesn't, so context is manually injected on publish and extracted on consume; see `event/OrderEventPublisher.java` and `tracing/OrderEventTracing.java`. A redelivered message from crash recovery continues the same trace as a tagged child span rather than starting a disconnected one.
 - **On-demand crash recovery**: `notification-service`'s pending-message recovery job runs on a schedule, or immediately via `POST http://localhost:8085/actuator/orderEventRecovery`.
 
 ## Resilience
 
-- **order-service → cart-service/product-service (Feign)**: circuit breaker + retry (Resilience4j) + connect/read timeouts, per client. Retries skip and an open circuit. See `client/resilient/` and `application.yml`.
-- **Gateway rate limiting**: Redis-backed token bucket per route, keyed by user id (falls back to IP for public routes). See `RateLimiterKeyResolver` and `application.yml`.
+- **order-service to cart-service/product-service (Feign)**: circuit breaker plus retry (Resilience4j) with connect/read timeouts, per client. An open circuit fails fast and skips retries. See `client/resilient/` and `application.yml`.
+- **Gateway rate limiting**: Redis-backed token bucket per route, keyed by user id, falling back to IP for public routes. See `RateLimiterKeyResolver` and `application.yml`.
 
 ## Architecture
 
@@ -101,29 +99,40 @@ Aggregated Swagger UI at the gateway — <http://localhost:8080/swagger-ui.html>
     (browser / frontend)                               │ - actuator exposed)  │
                                                        └──────────────────────┘
 ```
-Every service also reports spans to Zipkin (<http://localhost:9411>) — omitted above to keep the request-flow diagram readable; see the Observability section.
+Every service also reports spans to Zipkin (<http://localhost:9411>).
 
 ## Tech stack
 
 - Java 25 (virtual threads enabled), Spring Boot 4.1.0, Spring Cloud 2025.1.2
 - Resilience4j (circuit breaker, retry) on order-service's Feign clients; Redis rate limiting on the gateway
-- Micrometer Tracing + Zipkin (Brave) — distributed tracing across every service, including manual propagation over the Redis Streams hop
+- Micrometer Tracing plus Zipkin (Brave): distributed tracing across every service, including manual propagation over the Redis Streams hop
 - Spring Data JPA + PostgreSQL, schema managed with Flyway
 - Spring Data Redis (cache, primary datastore, and Streams)
 - JJWT, with DB-backed rotating refresh tokens
-- springdoc-openapi — Swagger UI aggregated at the gateway
+- springdoc-openapi: Swagger UI aggregated at the gateway
 - Maven multi-module reactor build
 - Docker & Docker Compose
 
-## Tests
+## Scripts
 
-```bash
-mvn test
-```
+Everything under `scripts/` except `test.sh` assumes a stack is already running (`docker compose up --build`). Run order and flag details: [`scripts/README.md`](scripts/README.md).
 
-Unit tests run with plain Mockito. Integration tests spin up Postgres/Redis via Testcontainers.
+**Setup and teardown**
+- `test.sh`: runs the Maven reactor's tests (unit plus Testcontainers integration). Detects Colima and wires its socket automatically; falls back to the default Docker context (Docker Desktop, plain Docker CLI) otherwise.
 
-*If your local JDK is newer than Java 25 you may hit Lombok errors (`cannot find symbol: method builder()`). Run Maven in a matching container instead:*
+**Functional checks**
+- `smoke-test.sh`: quick black-box pass. Register, login, fetch profile.
+- `full-functional.sh`: auth lifecycle, product CRUD, and a full cart to checkout to cancel round trip.
+- `swagger.sh`: confirms the aggregated docs are reachable and the per-operation security matches what's documented.
+
+**Resilience pattern demos**
+- `load-balancing.sh`: scales product-service and confirms requests rotate across instances.
+- `idempotency.sh`: calls the same Idempotency-Key twice, confirms the second call doesn't re-apply.
+- `rate-limiting.sh`: hammers the login route past its token bucket, watches 400s turn into 429s.
+- `circuit-breaker.sh`: kills product-service mid-traffic, watches the circuit open then self-heal.
+- `observability.sh`: traces a full checkout across every service; `--crash-recovery` also proves a redelivered message continues the same trace.
+
+If your local JDK is newer than Java 25, `mvn`/`test.sh` may hit Lombok errors (`cannot find symbol: method builder()`). Run Maven in a matching container instead:
 ```bash
 docker run --rm \
   -v "$(pwd)":/workspace \
@@ -146,6 +155,3 @@ docker run --rm \
 | Load balancing (instance header) | [`product-service/.../config/InstanceIdFilter.java`](product-service/src/main/java/com/ecommerce/product/config/InstanceIdFilter.java) |
 | Circuit breaker/retry wrappers | [`order-service/.../client/resilient/`](order-service/src/main/java/com/ecommerce/order/client/resilient) |
 | Gateway rate limit key resolution | [`api-gateway/.../filter/RateLimiterKeyResolver.java`](api-gateway/src/main/java/com/ecommerce/gateway/filter/RateLimiterKeyResolver.java) |
-
-
-
