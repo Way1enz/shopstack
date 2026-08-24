@@ -130,8 +130,13 @@ class ProductIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(productJson("Desk Lamp", "24.99", 15)));
 
+        // page.totalElements confirms VIA_DTO serialization; pageable absence rules out raw PageImpl.
         mockMvc.perform(get("/api/products").param("category", "Electronics"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content").isArray());
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.page.totalElements").isNumber())
+                .andExpect(jsonPath("$.page.size").isNumber())
+                .andExpect(jsonPath("$.page.totalPages").isNumber())
+                .andExpect(jsonPath("$.pageable").doesNotExist());
     }
 }

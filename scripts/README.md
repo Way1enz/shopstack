@@ -1,7 +1,7 @@
 # Run order
 
 1. `./test.sh`
-2. `docker compose up --build` (run in terminal as a prerequisite for everything below)
+2. `docker compose up --build` (run in terminal as a prerequisite for everything below, then wait a moment after the command finishes running)
 3. `./smoke-test.sh`
 4. `./swagger.sh`
 5. `./full-functional.sh`

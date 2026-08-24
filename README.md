@@ -37,8 +37,6 @@ docker compose up --scale product-service=5 --no-recreate -d
 docker compose up --scale product-service=1 --no-recreate -d
 ```
 
-`scripts/load-balancing.sh` scales `product-service`, waits for every replica to register with Eureka, then sends requests through the gateway and confirms the `X-Instance-Id` response header actually rotates across instances.
-
 ## Services
 
 - **user-service**: registration, login, JWT issuance, refresh tokens.
@@ -103,14 +101,14 @@ Every service also reports spans to Zipkin (<http://localhost:9411>).
 
 ## Tech stack
 
-- Java 25 (virtual threads enabled), Spring Boot 4.1.0, Spring Cloud 2025.1.2
+- Java 25 (virtual threads enabled), Spring Boot 4.1.1, Spring Cloud 2025.1.2
 - Resilience4j (circuit breaker, retry) on order-service's Feign clients; Redis rate limiting on the gateway
 - Micrometer Tracing plus Zipkin (Brave): distributed tracing across every service, including manual propagation over the Redis Streams hop
 - Spring Data JPA + PostgreSQL, schema managed with Flyway
 - Spring Data Redis (cache, primary datastore, and Streams)
 - JJWT, with DB-backed rotating refresh tokens
 - springdoc-openapi: Swagger UI aggregated at the gateway
-- Maven multi-module reactor build
+- Maven multi-module reactor build, with a wrapper (`./mvnw`) in every service
 - Docker & Docker Compose
 
 ## Scripts

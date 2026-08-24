@@ -9,6 +9,7 @@ import com.ecommerce.order.entity.OrderItem;
 import com.ecommerce.order.entity.OrderStatus;
 import com.ecommerce.order.event.OrderEventPublisher;
 import com.ecommerce.order.exception.ApiException;
+import com.ecommerce.order.logging.LogPerformance;
 import com.ecommerce.order.payment.PaymentService;
 import com.ecommerce.order.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +39,7 @@ public class OrderService {
     // cart -> decrement stock -> payment -> persist -> clear cart -> publish event.
     // If payment fails after stock was decremented, everything decremented is restocked.
     @Transactional
+    @LogPerformance
     public Order checkout(Long userId, CheckoutRequest request) {
         CartDTO cart = cartClient.getCart(userId);
 
