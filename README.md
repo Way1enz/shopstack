@@ -1,6 +1,7 @@
 # ShopStack
 
 [![CI](https://github.com/Way1enz/shopstack/actions/workflows/ci.yml/badge.svg)](https://github.com/Way1enz/shopstack/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 A backend microservices project simulating an e-commerce application.
 
