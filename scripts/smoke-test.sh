@@ -2,8 +2,7 @@
 set -euo pipefail
 
 # Black-box check against a stack already running via `docker compose up --build`,
-# same checks as CI's smoke-test job. Field names come from development.md Part 11
-# item 7: update both if a DTO ever changes.
+# same checks as CI's smoke-test job. Update the field names below if a DTO changes.
 #
 # Usage: scripts/smoke-test.sh
 #        BASE_URL=http://localhost:9090 scripts/smoke-test.sh

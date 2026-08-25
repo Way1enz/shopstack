@@ -11,7 +11,7 @@ set -euo pipefail
 #        scripts/observability.sh --crash-recovery  # also stops
 #          notification-service, forces a message into a delivered-but-unacked
 #          state, and confirms the redelivery continues the same trace as a
-#          child span (development.md Part 6 has the BUSYGROUP context)
+#          child span
 
 CRASH_RECOVERY=false
 for arg in "$@"; do
@@ -26,6 +26,12 @@ done
 
 BASE_URL="${BASE_URL:-http://localhost:8080}"
 ZIPKIN_URL="${ZIPKIN_URL:-http://localhost:9411}"
+
+pass() { echo "PASS: $1"; }
+fail() {
+  echo "FAIL: $1" >&2
+  exit 1
+}
 
 echo "Waiting for gateway routes to bind..."
 ROUTES="[]"
@@ -84,20 +90,42 @@ TRACE_ID=$(docker compose exec -T redis redis-cli XREVRANGE order-events + - COU
 
 curl -s "$ZIPKIN_URL/api/v2/trace/$TRACE_ID" -o /tmp/trace.json
 # Zipkin's span export is async and different services flush on different timing, so
-# api-gateway's spans can land well before order-service/cart-service/product-service's.
-# Poll until order-service's own span specifically shows up; a generic non-empty check
-# would pass too early on api-gateway's span alone.
+# api-gateway's spans can land well before order-service/cart-service/product-service's,
+# and notification-service's consumer span (async, off the Redis Stream) lands last of all.
+# Poll until both order-service and notification-service specifically show up; a generic
+# non-empty check would pass too early on api-gateway's span alone.
 for i in $(seq 1 10); do
-  grep -q '"serviceName":"order-service"' /tmp/trace.json 2>/dev/null && break
+  grep -q '"serviceName":"order-service"' /tmp/trace.json 2>/dev/null &&
+    grep -q '"serviceName":"notification-service"' /tmp/trace.json 2>/dev/null && break
   sleep 2
   curl -s "$ZIPKIN_URL/api/v2/trace/$TRACE_ID" -o /tmp/trace.json
 done
 echo "Trace ID: $TRACE_ID"
+SERVICES=$(grep -o '"serviceName":"[^"]*"' /tmp/trace.json | sort -u)
 echo "Services in this trace:"
-grep -o '"serviceName":"[^"]*"' /tmp/trace.json | sort -u || echo "  (none found - raw response: $(cat /tmp/trace.json))"
-echo "Async Redis Streams hop:"
-grep -o '"name":"order-events receive"' /tmp/trace.json || echo "  (not found - trace has no async consumer span)"
-grep -o '"messaging.redelivered":"[^"]*"' /tmp/trace.json || echo "  (not found - no messaging.redelivered tag)"
+echo "$SERVICES"
+echo "('redis' above is Lettuce's own per-command tracing, separate from the consumer span below)"
+# The checkout path is api-gateway -> order-service -> (cart-service, product-service via
+# Feign) -> notification-service (async, via Redis Streams, no HTTP call). No user-service
+# call here since order-service doesn't hold a UserClient.
+MISSING=""
+for svc in api-gateway order-service cart-service product-service notification-service; do
+  echo "$SERVICES" | grep -q "\"$svc\"" || MISSING="$MISSING $svc"
+done
+if [ -z "$MISSING" ]; then
+  pass "all 5 expected services present in one trace, including notification-service (async only, no HTTP call)"
+else
+  fail "missing from trace:$MISSING"
+fi
+
+echo
+echo "Async Redis Streams hop: notification-service consumes this event from the stream."
+echo "order-service never makes an HTTP call to notification-service."
+if grep -q '"name":"order-events receive"' /tmp/trace.json; then
+  pass "order-events receive span found (async consumer traced)"
+else
+  fail "no async consumer span found for order-events receive"
+fi
 
 if [ "$CRASH_RECOVERY" = true ]; then
   echo
@@ -119,6 +147,7 @@ if [ "$CRASH_RECOVERY" = true ]; then
   docker compose exec -T redis redis-cli XREADGROUP GROUP notification-service-group notification-consumer-1 COUNT 1 STREAMS order-events '>'
   echo
   echo "Pending Entries List - message delivered but never acknowledged:"
+  echo "(summary form: total pending, smallest ID, greatest ID, then per-consumer pending count)"
   docker compose exec -T redis redis-cli XPENDING order-events notification-service-group
 
   docker compose start notification-service
@@ -144,6 +173,10 @@ if [ "$CRASH_RECOVERY" = true ]; then
     sleep 2
     curl -s "$ZIPKIN_URL/api/v2/trace/$RECOVERY_TRACE_ID" -o /tmp/trace2.json
   done
-  echo "Expect true - confirms the redelivered message is a child span of the original trace:"
-  grep -o '"messaging.redelivered":"[^"]*"' /tmp/trace2.json || echo "  (not found - no messaging.redelivered tag)"
+  REDELIVERED=$(grep -o '"messaging.redelivered":"[^"]*"' /tmp/trace2.json | cut -d'"' -f4)
+  if [ "$REDELIVERED" = "true" ]; then
+    pass "redelivered message continues the original trace as a child span (messaging.redelivered=true)"
+  else
+    fail "messaging.redelivered was '${REDELIVERED:-not found}', expected true"
+  fi
 fi
