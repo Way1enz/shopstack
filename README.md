@@ -74,40 +74,32 @@ Aggregated Swagger UI at the gateway: <http://localhost:8080/swagger-ui.html>. D
 
 ## Architecture
 
+```mermaid
+flowchart TD
+    client(["Client<br/>browser / frontend"]) -->|all traffic| gateway["api-gateway :8080<br/>single public entry point"]
+
+    gateway --> user["user-service :8081<br/>Postgres"]
+    gateway --> product["product-service :8082<br/>Postgres + Redis cache"]
+    gateway --> cart["cart-service :8083<br/>Redis"]
+    gateway --> order["order-service :8084<br/>Postgres"]
+
+    cart -->|Feign| product
+    order -->|Feign| product
+    order -->|Feign| cart
+
+    order -.->|publishes, fire-and-forget| stream[("Redis Stream<br/>order-events")]
+    stream -.->|consumer group| notification["notification-service :8085<br/>no client API, actuator exposed"]
+
+    eureka{{"eureka-server :8761<br/>service registry"}}
+    gateway -.->|registers| eureka
+    user -.->|registers| eureka
+    product -.->|registers| eureka
+    cart -.->|registers| eureka
+    order -.->|registers| eureka
+    notification -.->|registers| eureka
 ```
-                              ┌──────────────────┐
-                              │  eureka-server   │ :8761 (service registry)
-                              └────────▲─────────┘
-                                       │ registers with
-        ┌──────────────────────────────┼───────────────────────────────┐
-        │                              │                               │
-┌───────▼──────┐               ┌───────▼───────┐               ┌───────▼──────┐
-│ user-service │               │product-service│               │ cart-service │
-│   :8081      │               │    :8082      │               │   :8083      │
-│  (Postgres)  │               │ (Postgres+    │               │   (Redis)    │
-│              │               │  Redis cache) │               │              │
-└──────────────┘               └────────▲──────┘               │              │
-                                        │                      └──────▲───────┘
-                                        │ Feign                       │ Feign
-                                ┌───────┴─────────────────────────────┘
-                                │     order-service :8084 (Postgres)  │
-                                └───────────────┬─────────────────────┘
-                                     ▲          │ publishes (fire-and-forget)
-                                     │          ▼
-                 all client traffic  │  ┌───────────────────────────┐
-                                     │  │  Redis Stream:            │
-                                     │  │  "order-events"           │
-                                     │  └─────────────────────────┬─┘
-   ┌─────────────────┐               │                            │ consumer
-   │   api-gateway   │───────────────┘                            │ group
-   └────────▲────────┘ :8080 (single public entry point)          ▼
-            │                                          ┌──────────────────────┐
-            │                                          │ notification-service │
-          client                                       │ :8085 (no client API │
-    (browser / frontend)                               │ - actuator exposed)  │
-                                                       └──────────────────────┘
-```
-Every service also reports spans to Zipkin (<http://localhost:9411>).
+
+Solid arrows are synchronous HTTP/Feign calls; dashed arrows are async. Every service also reports spans to Zipkin (<http://localhost:9411>).
 
 ## Tech stack
 
