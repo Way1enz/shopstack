@@ -19,7 +19,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex) {
-        // Reports every failing field at once, not just the first one.
+        // Collects every failing field into one response.
         String message = ex.getBindingResult().getFieldErrors().stream()
                 .map(fe -> fe.getField() + " " + fe.getDefaultMessage())
                 .collect(Collectors.joining("; "));

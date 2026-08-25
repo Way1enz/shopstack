@@ -6,6 +6,8 @@ A backend microservices project simulating an e-commerce application.
 
 ## Starting services with Docker
 
+If your local machine doesn't have Docker installed, follow [Docker's install guide](https://docs.docker.com/get-started/get-docker/)
+
 Clone the repo, then from the project root:
 ```bash
 docker compose up --build
@@ -16,7 +18,7 @@ Starts Postgres and Redis, then Eureka, then every service, then the gateway las
 - Discovery Server (Eureka): <http://localhost:8761>
 - API entry point (Gateway): <http://localhost:8080>
 
-On Colima (or any manual Docker Engine setup), `buildx` may not be installed or automatically wired up. If so, install the plugin and link it manually:
+On Colima (or any manually-configured Docker Engine), `buildx` may not be installed or wired up automatically. If `docker compose up --build` fails with a BuildKit error, install the plugin and link it manually:
 ```bash
 brew install docker-buildx  # or use your package manager
 mkdir -p ~/.docker/cli-plugins
@@ -30,7 +32,7 @@ docker compose down      # stop, keep data
 docker compose down -v   # stop and wipe all data
 ```
 
-## Scaling and load balancing
+## Scaling
 
 Any service can be scaled to multiple replicas. No fixed `container_name` entries exist in `docker-compose.yml`, so Compose handles naming automatically.
 
@@ -39,7 +41,7 @@ Start with multiple replicas from the beginning:
 docker compose up --build --scale product-service=3
 ```
 
-Scale up or down while already running, no restart needed:
+Scale up or down while already running:
 ```bash
 docker compose up --scale product-service=5 --no-recreate -d
 docker compose up --scale product-service=1 --no-recreate -d
@@ -57,7 +59,7 @@ docker compose up --scale product-service=1 --no-recreate -d
 
 ## API Docs
 
-Aggregated Swagger UI at the gateway: <http://localhost:8080/swagger-ui.html>. The dropdown switches between the four REST services; individual services aren't port-mapped to the host. Authorize with `Bearer <token>` from `/api/auth/login` to exercise protected endpoints. Requests go through the gateway, so auth and rate limiting apply the same as they would for any other client.
+Aggregated Swagger UI at the gateway: <http://localhost:8080/swagger-ui.html>. Dropdown switches between the four REST services; individual services aren't port-mapped to the host. Authorize with `Bearer <token>` from `/api/auth/login` to exercise protected endpoints. Requests go through the gateway, so auth and rate limiting apply the same as they would for any other client.
 
 ## Observability
 
@@ -116,7 +118,7 @@ Every service also reports spans to Zipkin (<http://localhost:9411>).
 - Spring Data Redis (cache, primary datastore, and Streams)
 - JJWT, with DB-backed rotating refresh tokens
 - springdoc-openapi: Swagger UI aggregated at the gateway
-- Maven multi-module reactor build, with a wrapper (`./mvnw`) in every service
+- Maven multi-module reactor build
 - Docker & Docker Compose
 
 ## Scripts
@@ -131,14 +133,14 @@ Everything under `scripts/` except `test.sh` assumes a stack is already running 
 - `full-functional.sh`: auth lifecycle, product CRUD, and a full cart to checkout to cancel round trip.
 - `swagger.sh`: confirms the aggregated docs are reachable and the per-operation security matches what's documented.
 
-**Resilience pattern demos**
+**Resilience**
 - `load-balancing.sh`: scales product-service and confirms requests rotate across instances.
 - `idempotency.sh`: calls the same Idempotency-Key twice, confirms the second call doesn't re-apply.
 - `rate-limiting.sh`: hammers the login route past its token bucket, watches 400s turn into 429s.
 - `circuit-breaker.sh`: kills product-service mid-traffic, watches the circuit open then self-heal.
 - `observability.sh`: traces a full checkout across every service; `--crash-recovery` also proves a redelivered message continues the same trace.
 
-For more detail, or to adapt a script for your own testing, open it directly — each one is self-contained and safe to edit.
+For more detail, or to adapt a script for your own testing, edit the scrips directly as each one is self-contained.
 
 If your local JDK is newer than Java 25, `mvn`/`test.sh` may hit Lombok errors (`cannot find symbol: method builder()`). Run Maven in a matching container instead:
 ```bash

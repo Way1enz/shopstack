@@ -6,10 +6,9 @@ import org.springframework.stereotype.Component;
 import java.time.Duration;
 import java.time.Instant;
 
-// Backs decrementStock/restock against a retried call that actually succeeded but whose
-// response was lost. order-service holds one Idempotency-Key fixed across all retries of a
-// given logical operation; claim() is an atomic Redis SETNX: whoever sets the key first
-// proceeds with the mutation, everyone else with that key is told it's a duplicate.
+// Backs decrementStock/restock against a retried call that succeeded but whose response
+// was lost: claim() is an atomic Redis SETNX per Idempotency-Key, so the first caller
+// proceeds and every retry after it is told it's a duplicate.
 @Component
 public class IdempotencyGuard {
 

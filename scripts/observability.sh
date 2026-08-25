@@ -85,8 +85,8 @@ TRACE_ID=$(docker compose exec -T redis redis-cli XREVRANGE order-events + - COU
 curl -s "$ZIPKIN_URL/api/v2/trace/$TRACE_ID" -o /tmp/trace.json
 # Zipkin's span export is async and different services flush on different timing, so
 # api-gateway's spans can land well before order-service/cart-service/product-service's.
-# Wait for order-service specifically since it's the one that published this exact
-# message, not just for any non-empty response.
+# Poll until order-service's own span specifically shows up; a generic non-empty check
+# would pass too early on api-gateway's span alone.
 for i in $(seq 1 10); do
   grep -q '"serviceName":"order-service"' /tmp/trace.json 2>/dev/null && break
   sleep 2
@@ -137,8 +137,8 @@ if [ "$CRASH_RECOVERY" = true ]; then
 
   curl -s "$ZIPKIN_URL/api/v2/trace/$RECOVERY_TRACE_ID" -o /tmp/trace2.json
   # The redelivered span only exists after the recovery scan actually runs (just above),
-  # so it exports later than the original checkout spans. Wait for that specific tag,
-  # not just for the trace to be non-empty; the original spans would satisfy that early.
+  # so it exports later than the original checkout spans. Poll for that specific tag;
+  # the original spans alone would already satisfy a plain non-empty check.
   for i in $(seq 1 10); do
     grep -q '"messaging.redelivered":"true"' /tmp/trace2.json 2>/dev/null && break
     sleep 2

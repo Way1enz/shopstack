@@ -37,7 +37,6 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of(status.value(), "Downstream service error: " + ex.getMessage()));
     }
 
-    // Without this, a missing X-User-Id header falls through to the generic 500 handler below.
     @ExceptionHandler(MissingRequestHeaderException.class)
     public ResponseEntity<ErrorResponse> handleMissingHeader(MissingRequestHeaderException ex) {
         return ResponseEntity.badRequest().body(ErrorResponse.of(400, "Missing required header: " + ex.getHeaderName()));
@@ -45,7 +44,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex) {
-        // Reports every failing field at once, not just the first.
+        // Collects every failing field into one response.
         String message = ex.getBindingResult().getFieldErrors().stream()
                 .map(fe -> fe.getField() + " " + fe.getDefaultMessage())
                 .collect(Collectors.joining("; "));

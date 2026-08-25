@@ -9,8 +9,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 // Instance name "cart-service" matches the circuitbreaker/retry keys in application.yml.
-// Kept separate from OrderService so @CircuitBreaker/@Retry actually get AOP-proxied -
-// calling an annotated method on `this` bypasses the proxy and silently skips resilience.
+// Kept separate from OrderService so @CircuitBreaker/@Retry actually get AOP-proxied.
+// Calling an annotated method on `this` bypasses the proxy and silently skips resilience.
 @Component
 public class ResilientCartClient {
 
@@ -30,8 +30,8 @@ public class ResilientCartClient {
         return cartClient.getCart(userId);
     }
 
-    // Runs after the order is committed, so failure here must not fail the checkout -
-    // fallback swallows it. Safe to retry: clearing an empty cart is a no-op.
+    // Runs after the order is committed, so failure here must not fail the checkout.
+    // Fallback swallows it. Safe to retry: clearing an empty cart is a no-op.
     @CircuitBreaker(name = INSTANCE, fallbackMethod = "clearCartFallback")
     @Retry(name = INSTANCE, fallbackMethod = "clearCartFallback")
     public void clearCart(Long userId) {

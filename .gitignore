@@ -22,9 +22,9 @@ Thumbs.db
 .env
 
 # Docker
-docker-data/
 
 # Local
-development.md
-pitfalls.xml
 scripts/cleanup.sh
+
+# HTTP client
+http/http-client.private.env.json

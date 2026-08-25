@@ -174,8 +174,8 @@ management:
       access: read-only
   tracing:
     sampling:
-      # 100% for local/portfolio use so every request shows up in Zipkin. Drop this
-      # to something like 0.1 before it ever sees real traffic.
+      # 1.0 traces every request, useful for a local/portfolio demo. Lower it
+      # (e.g. 0.1) in production.
       probability: 1.0
     export:
       zipkin:

@@ -24,8 +24,6 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErrorResponse.of(404, "Product not found"));
     }
 
-    // Without this, a missing required header (e.g. X-User-Id) would fall through to the
-    // generic 500 handler below instead of the 400 it should be.
     @ExceptionHandler(MissingRequestHeaderException.class)
     public ResponseEntity<ErrorResponse> handleMissingHeader(MissingRequestHeaderException ex) {
         return ResponseEntity.badRequest().body(ErrorResponse.of(400, "Missing required header: " + ex.getHeaderName()));
@@ -33,7 +31,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex) {
-        // Reports every failing field at once, not just the first one.
+        // Collects every failing field into one response.
         String message = ex.getBindingResult().getFieldErrors().stream()
                 .map(fe -> fe.getField() + " " + fe.getDefaultMessage())
                 .collect(Collectors.joining("; "));

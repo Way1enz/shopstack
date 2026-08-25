@@ -9,23 +9,49 @@ permissions:
   actions: write
 
 jobs:
+  debug-caches:
+    # Manual only
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+    steps:
+      - name: Dump raw cache entries (id / key / version / ref / created_at)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh api --paginate "/repos/${GH_REPO}/actions/caches?per_page=100" \
+            --jq '.actions_caches[] | "\(.id)\t\(.key)\t\(.version)\t\(.ref)\t\(.created_at)"'
+
   cleanup:
     runs-on: ubuntu-latest
     steps:
-      # mode=max regenerates cache blobs every run instead of reusing them, accumulating
-      - name: Prune old per-service caches, keep the newest each
+      # mode=max regenerates cache blobs every run instead of reusing them, accumulating.
+      - name: Prune old per-service indexes and stale blobs
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
           SERVICES="eureka-server api-gateway user-service product-service cart-service order-service notification-service"
           ALL=$(gh api --paginate "/repos/${GH_REPO}/actions/caches?per_page=100" --jq '.actions_caches[] | "\(.id)\t\(.created_at)\t\(.key)"')
+
           for svc in $SERVICES; do
-            GROUP=$(echo "$ALL" | grep "$svc" || true)
+            GROUP=$(echo "$ALL" | grep "index-$svc-" || true)
             [ -z "$GROUP" ] && continue
-            OLD_IDS=$(echo "$GROUP" | sort -t$'\t' -k2 -r | tail -n +2 | cut -f1)
+            OLD_IDS=$(echo "$GROUP" | sort -t$'\t' -k2,2 -r | tail -n +2 | cut -f1)
             for id in $OLD_IDS; do
-              echo "Deleting old $svc cache: $id"
+              echo "Deleting old $svc index: $id"
               gh cache delete "$id" || true
             done
           done
+
+          CUTOFF=$(date -u -d '7 days ago' +%s)
+          while IFS=$'\t' read -r id created_at key; do
+            case "$key" in buildkit-blob-*) ;; *) continue ;; esac
+            AGE=$(date -u -d "$created_at" +%s)
+            if [ "$AGE" -lt "$CUTOFF" ]; then
+              echo "Deleting stale blob (older than 7 days): $id"
+              gh cache delete "$id" || true
+            fi
+          done <<< "$ALL"

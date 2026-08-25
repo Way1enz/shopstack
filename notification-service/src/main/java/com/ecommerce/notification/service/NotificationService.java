@@ -20,9 +20,9 @@ public class NotificationService {
         this.redisTemplate = redisTemplate;
     }
 
-    // Simulated send (swap the log line for a real email/SMS integration later). Idempotency
-    // check matters because Redis Streams delivery is at-least-once; without it a redelivered
-    // message would send a duplicate confirmation.
+    // Simulated send (swap the log line for a real email/SMS integration later). Redis
+    // Streams delivery is at-least-once, so the idempotency check skips redelivered
+    // messages instead of resending them.
     public void handleOrderCreated(Map<String, String> fields, String recordId) {
         String orderId = fields.get("orderId");
 

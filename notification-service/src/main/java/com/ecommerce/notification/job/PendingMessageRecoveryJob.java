@@ -24,7 +24,7 @@ import static com.ecommerce.notification.config.RedisStreamConfig.STREAM_KEY;
 
 // Recovers messages delivered but never acknowledged (crash mid-processing). ReadOffset.from("0")
 // under the same group+name returns this consumer's own pending backlog, not new messages.
-// Also callable on demand via OrderEventRecoveryEndpoint, not just on the @Scheduled cadence.
+// Reachable on demand via OrderEventRecoveryEndpoint too, outside the @Scheduled cadence.
 @Component
 public class PendingMessageRecoveryJob {
 
