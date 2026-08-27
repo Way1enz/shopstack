@@ -36,6 +36,8 @@
         <!-- 3.1.0 is the springdoc-openapi release whose own parent POM is
              spring-boot-starter-parent 4.1.0. -->
         <springdoc.version>3.1.0</springdoc.version>
+        <!-- 0.8.15 is the first release with official (not experimental) Java 25 support. -->
+        <jacoco.version>0.8.15</jacoco.version>
     </properties>
 
     <dependencyManagement>
@@ -96,5 +98,29 @@
                 </plugin>
             </plugins>
         </pluginManagement>
+
+        <!-- Not in pluginManagement: every module inherits this without a matching entry. -->
+        <plugins>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.version}</version>
+                <executions>
+                    <execution>
+                        <id>prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
     </build>
 </project>
