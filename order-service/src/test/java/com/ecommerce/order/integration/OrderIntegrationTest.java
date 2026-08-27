@@ -5,7 +5,10 @@ import com.ecommerce.order.client.CartDTO;
 import com.ecommerce.order.client.ProductClient;
 import com.ecommerce.order.client.ProductDTO;
 import com.ecommerce.order.entity.Order;
+import com.ecommerce.order.entity.OutboxEvent;
+import com.ecommerce.order.entity.OutboxEventStatus;
 import com.ecommerce.order.repository.OrderRepository;
+import com.ecommerce.order.repository.OutboxEventRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -33,10 +36,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 // CartClient/ProductClient are mocked: this tests order-service's own persistence logic,
-// not cart-service or product-service. No Redis either: OrderEventPublisher is fire-and-forget,
-// so an order should persist fine without it.
+// not cart-service or product-service. No Redis either: checkout only writes the outbox row,
+// OutboxEventPoller does the Redis publish separately.
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK,
-        properties = "eureka.client.enabled=false")
+        properties = {"eureka.client.enabled=false", "order.outbox.poll-initial-delay-ms=600000"})
 @AutoConfigureMockMvc
 @Testcontainers
 class OrderIntegrationTest {
@@ -51,6 +54,9 @@ class OrderIntegrationTest {
 
     @Autowired
     private OrderRepository orderRepository;
+
+    @Autowired
+    private OutboxEventRepository outboxEventRepository;
 
     @MockitoBean
     private CartClient cartClient;
@@ -80,6 +86,12 @@ class OrderIntegrationTest {
         List<Order> persisted = orderRepository.findByUserIdOrderByCreatedAtDesc(userId);
         assertThat(persisted).hasSize(1);
         assertThat(persisted.get(0).getTotalAmount()).isEqualByComparingTo(new BigDecimal("39.98"));
+
+        List<OutboxEvent> outboxEventsForOrder = outboxEventRepository
+                .findTop50ByStatusOrderByIdAsc(OutboxEventStatus.PENDING).stream()
+                .filter(e -> e.getOrderId().equals(persisted.get(0).getId()))
+                .toList();
+        assertThat(outboxEventsForOrder).hasSize(1);
     }
 
     @Test

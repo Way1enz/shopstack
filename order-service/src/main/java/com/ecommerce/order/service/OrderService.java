@@ -7,7 +7,7 @@ import com.ecommerce.order.dto.CheckoutRequest;
 import com.ecommerce.order.entity.Order;
 import com.ecommerce.order.entity.OrderItem;
 import com.ecommerce.order.entity.OrderStatus;
-import com.ecommerce.order.event.OrderEventPublisher;
+import com.ecommerce.order.event.OutboxEventWriter;
 import com.ecommerce.order.exception.ApiException;
 import com.ecommerce.order.logging.LogPerformance;
 import com.ecommerce.order.payment.PaymentService;
@@ -33,11 +33,13 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final ResilientCartClient cartClient;
     private final ResilientProductClient productClient;
-    private final OrderEventPublisher orderEventPublisher;
+    private final OutboxEventWriter outboxEventWriter;
     private final PaymentService paymentService;
 
-    // cart -> decrement stock -> payment -> persist -> clear cart -> publish event.
+    // cart -> decrement stock -> payment -> persist -> clear cart -> enqueue outbox event.
     // If payment fails after stock was decremented, everything decremented is restocked.
+    // The outbox row commits in the same transaction as the order; OutboxEventPoller publishes
+    // it to Redis Streams afterward, so a Redis outage can't lose the event.
     @Transactional
     @LogPerformance
     public Order checkout(Long userId, CheckoutRequest request) {
@@ -88,7 +90,7 @@ public class OrderService {
 
         cartClient.clearCart(userId);
 
-        orderEventPublisher.publishOrderCreated(saved);
+        outboxEventWriter.enqueueOrderCreated(saved);
 
         return saved;
     }
