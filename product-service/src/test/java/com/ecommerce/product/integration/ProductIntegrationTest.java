@@ -20,7 +20,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-// Real Postgres + Redis: exercises the @Cacheable/@CacheEvict path with actual JSON serialization.
+// Postgres + Redis: exercises the @Cacheable/@CacheEvict path with JSON serialization.
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK,
         properties = "eureka.client.enabled=false")
 @AutoConfigureMockMvc

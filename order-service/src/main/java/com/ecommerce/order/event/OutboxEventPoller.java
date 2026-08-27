@@ -16,8 +16,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
-// A row publishing twice on a race between replicas is harmless: notification-service already
-// dedupes by orderId (see NotificationService.PROCESSED_SET_KEY), so no row-level locking here.
+// Double publish on a replica race is harmless: notification-service dedupes by orderId
+// (see NotificationService.PROCESSED_SET_KEY).
 @Component
 @RequiredArgsConstructor
 public class OutboxEventPoller {

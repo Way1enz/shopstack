@@ -22,8 +22,8 @@ public class RedisStreamConfig {
 
     public static final String CONSUMER_GROUP = "notification-service-group";
 
-    // Fixed, not random/host-based, so a crashed container can recover its own pending backlog
-    // (see PendingMessageRecoveryJob). Multiple replicas would need unique names instead.
+    // Fixed, not random/host-based: lets a crashed container recover its own pending
+    // backlog (see PendingMessageRecoveryJob).
     public static final String CONSUMER_NAME = "notification-consumer-1";
 
     @Bean(destroyMethod = "stop")
@@ -66,8 +66,7 @@ public class RedisStreamConfig {
     }
 
     // RedisSystemException's own getMessage() is just "Error in execution". The real
-    // "BUSYGROUP" text only lives on the cause, so this walks the chain instead of trusting
-    // the top-level message.
+    // "BUSYGROUP" text only lives on the cause.
     private boolean isBusyGroup(Throwable e) {
         for (Throwable t = e; t != null; t = t.getCause()) {
             if (t.getMessage() != null && t.getMessage().contains("BUSYGROUP")) {

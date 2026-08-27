@@ -89,14 +89,17 @@ TRACE_ID=$(docker compose exec -T redis redis-cli XREVRANGE order-events + - COU
 }
 
 curl -s "$ZIPKIN_URL/api/v2/trace/$TRACE_ID" -o /tmp/trace.json
-# Zipkin's span export is async and different services flush on different timing, so
-# api-gateway's spans can land well before order-service/cart-service/product-service's,
-# and notification-service's consumer span (async, off the Redis Stream) lands last of all.
-# Poll until both order-service and notification-service specifically show up; a generic
-# non-empty check would pass too early on api-gateway's span alone.
-for i in $(seq 1 10); do
-  grep -q '"serviceName":"order-service"' /tmp/trace.json 2>/dev/null &&
-    grep -q '"serviceName":"notification-service"' /tmp/trace.json 2>/dev/null && break
+# Zipkin's span export is async; each service's Micrometer reporter flushes on its own
+# timer with no reliable ordering between them. Poll for all 5 expected services directly.
+EXPECTED_SERVICES="api-gateway order-service cart-service product-service notification-service"
+all_services_present() {
+  for svc in $EXPECTED_SERVICES; do
+    grep -q "\"serviceName\":\"$svc\"" /tmp/trace.json 2>/dev/null || return 1
+  done
+  return 0
+}
+for i in $(seq 1 15); do
+  all_services_present && break
   sleep 2
   curl -s "$ZIPKIN_URL/api/v2/trace/$TRACE_ID" -o /tmp/trace.json
 done
@@ -109,7 +112,7 @@ echo "('redis' above is Lettuce's own per-command tracing, separate from the con
 # Feign) -> notification-service (async, via Redis Streams, no HTTP call). No user-service
 # call here since order-service doesn't hold a UserClient.
 MISSING=""
-for svc in api-gateway order-service cart-service product-service notification-service; do
+for svc in $EXPECTED_SERVICES; do
   echo "$SERVICES" | grep -q "\"$svc\"" || MISSING="$MISSING $svc"
 done
 if [ -z "$MISSING" ]; then
@@ -166,8 +169,7 @@ if [ "$CRASH_RECOVERY" = true ]; then
 
   curl -s "$ZIPKIN_URL/api/v2/trace/$RECOVERY_TRACE_ID" -o /tmp/trace2.json
   # The redelivered span only exists after the recovery scan actually runs (just above),
-  # so it exports later than the original checkout spans. Poll for that specific tag;
-  # the original spans alone would already satisfy a plain non-empty check.
+  # so it exports later than the original checkout spans. Poll for that specific tag.
   for i in $(seq 1 10); do
     grep -q '"messaging.redelivered":"true"' /tmp/trace2.json 2>/dev/null && break
     sleep 2

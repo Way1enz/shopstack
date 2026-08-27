@@ -22,8 +22,7 @@ public class RefreshTokenService {
     @Value("${jwt.refresh-expiration-ms:604800000}")
     private long refreshExpirationMs;
 
-    // Deletes any previous token for this user first, since only one is ever valid at a time,
-    // so logging in on a new device invalidates the old session.
+    // Deletes any previous token for this user first: only one is ever valid at a time.
     @Transactional
     public RefreshToken createRefreshToken(User user) {
         refreshTokenRepository.deleteByUser(user);

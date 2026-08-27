@@ -35,8 +35,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-// Real Postgres + Redis: checks an outbox row actually reaches the Redis stream, not just
-// that it gets written to the database.
+// Postgres + Redis: confirms an outbox row reaches the Redis stream.
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK,
         properties = {"eureka.client.enabled=false", "order.outbox.poll-initial-delay-ms=600000"})
 @AutoConfigureMockMvc
@@ -104,6 +103,13 @@ class OutboxPollerIntegrationTest {
         org.springframework.data.redis.core.StreamOperations<String, Object, Object> streamOps = redisTemplate.opsForStream();
         List<MapRecord<String, Object, Object>> records = streamOps.read(
                 org.springframework.data.redis.connection.stream.StreamOffset.fromStart("order-events"));
-        assertThat(records).anyMatch(r -> String.valueOf(orderId).equals(r.getValue().get("orderId")));
+        MapRecord<String, Object, Object> record = records.stream()
+                .filter(r -> String.valueOf(orderId).equals(r.getValue().get("orderId")))
+                .findFirst()
+                .orElseThrow();
+
+        // Trace context comes from the checkout request's span, captured in OutboxEventWriter
+        // at write time, not from OutboxEventPoller's scheduled thread.
+        assertThat(record.getValue()).containsKey("traceparent");
     }
 }

@@ -23,8 +23,8 @@ public class RedisConfig {
     public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
         ObjectMapper objectMapper = new ObjectMapper();
 
-        // A bare `new ObjectMapper()` doesn't get Spring Boot's autoconfigured Jackson modules,
-        // so java.time types (Instant fields on Product) need to be registered explicitly here.
+        // A bare `new ObjectMapper()` skips Spring Boot's autoconfigured Jackson modules;
+        // java.time types (Instant fields on Product) need registering explicitly here.
         objectMapper.registerModule(new JavaTimeModule());
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 

@@ -7,6 +7,7 @@ import com.ecommerce.order.dto.CheckoutRequest;
 import com.ecommerce.order.entity.Order;
 import com.ecommerce.order.entity.OrderItem;
 import com.ecommerce.order.entity.OrderStatus;
+import com.ecommerce.order.event.CompensationTaskWriter;
 import com.ecommerce.order.event.OutboxEventWriter;
 import com.ecommerce.order.exception.ApiException;
 import com.ecommerce.order.logging.LogPerformance;
@@ -34,12 +35,12 @@ public class OrderService {
     private final ResilientCartClient cartClient;
     private final ResilientProductClient productClient;
     private final OutboxEventWriter outboxEventWriter;
+    private final CompensationTaskWriter compensationTaskWriter;
     private final PaymentService paymentService;
 
     // cart -> decrement stock -> payment -> persist -> clear cart -> enqueue outbox event.
     // If payment fails after stock was decremented, everything decremented is restocked.
-    // The outbox row commits in the same transaction as the order; OutboxEventPoller publishes
-    // it to Redis Streams afterward, so a Redis outage can't lose the event.
+    // The outbox row commits in the same transaction as the order.
     @Transactional
     @LogPerformance
     public Order checkout(Long userId, CheckoutRequest request) {
@@ -118,31 +119,40 @@ public class OrderService {
         }
 
         List<OrderItem> items = order.getItems();
-        releaseReservedStockForOrder(items);
+        releaseReservedStockForOrder(items, order.getId());
 
         order.setStatus(OrderStatus.CANCELLED);
         return orderRepository.save(order);
     }
 
-    // Failures are logged, not thrown, so they never mask the original payment error.
+    // Failures persist a compensation task (see restockOne); the log here is an immediate
+    // signal, the durable retry is what recovers the stock.
     private void releaseReservedStock(List<CartDTO.CartItemDTO> items) {
         for (CartDTO.CartItemDTO item : items) {
-            restockOne(item.productId(), item.quantity());
+            restockOne(item.productId(), item.quantity(), null);
         }
     }
 
-    private void releaseReservedStockForOrder(List<OrderItem> items) {
+    private void releaseReservedStockForOrder(List<OrderItem> items, Long orderId) {
         for (OrderItem item : items) {
-            restockOne(item.getProductId(), item.getQuantity());
+            restockOne(item.getProductId(), item.getQuantity(), orderId);
         }
     }
 
-    private void restockOne(Long productId, int quantity) {
+    // orderId is null on the payment-decline path: the order is never persisted there.
+    private void restockOne(Long productId, int quantity, Long orderId) {
+        String idempotencyKey = newIdempotencyKey();
         try {
-            productClient.restock(productId, quantity, newIdempotencyKey());
+            productClient.restock(productId, quantity, idempotencyKey);
         } catch (Exception restockFailure) {
-            log.warn("Failed to restock product {} (qty {}) - stock may be understated until manually corrected",
+            log.warn("Failed to restock product {} (qty {}) - queued for durable retry",
                     productId, quantity, restockFailure);
+            try {
+                compensationTaskWriter.recordFailure(productId, quantity, orderId, idempotencyKey);
+            } catch (Exception writeFailure) {
+                log.error("Failed to persist compensation task for product {} (qty {}) - stock may be " +
+                        "understated with no durable retry queued for it", productId, quantity, writeFailure);
+            }
         }
     }
 

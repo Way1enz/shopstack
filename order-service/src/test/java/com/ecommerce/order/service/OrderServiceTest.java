@@ -7,6 +7,7 @@ import com.ecommerce.order.dto.CheckoutRequest;
 import com.ecommerce.order.entity.Order;
 import com.ecommerce.order.entity.OrderItem;
 import com.ecommerce.order.entity.OrderStatus;
+import com.ecommerce.order.event.CompensationTaskWriter;
 import com.ecommerce.order.event.OutboxEventWriter;
 import com.ecommerce.order.exception.ApiException;
 import com.ecommerce.order.payment.PaymentMethod;
@@ -31,6 +32,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -46,6 +48,8 @@ class OrderServiceTest {
     private ResilientProductClient productClient;
     @Mock
     private OutboxEventWriter outboxEventWriter;
+    @Mock
+    private CompensationTaskWriter compensationTaskWriter;
     @Mock
     private PaymentService paymentService;
 
@@ -122,6 +126,8 @@ class OrderServiceTest {
         verify(productClient).decrementStock(eq(20L), eq(1), anyString());
         verify(productClient).restock(eq(10L), eq(2), anyString());
         verify(productClient).restock(eq(20L), eq(1), anyString());
+        // Restock itself succeeded (not stubbed to throw), so no durable task should be queued.
+        verify(compensationTaskWriter, never()).recordFailure(any(), anyInt(), any(), anyString());
 
         // Nothing downstream of payment should have happened.
         verify(orderRepository, never()).save(any(Order.class));
@@ -130,7 +136,7 @@ class OrderServiceTest {
     }
 
     @Test
-    void checkout_restockItselfFails_doesNotMaskOriginalPaymentError() {
+    void checkout_restockItselfFails_doesNotMaskOriginalPaymentErrorAndQueuesCompensationTask() {
         // The restock call failing must never hide the real payment exception (restockOne() catches and logs).
         Long userId = 1L;
         CartDTO.CartItemDTO item = new CartDTO.CartItemDTO(10L, "Widget", new BigDecimal("19.99"), 1);
@@ -145,6 +151,9 @@ class OrderServiceTest {
 
         assertThatThrownBy(() -> orderService.checkout(userId, request))
                 .isSameAs(declineException);
+
+        // orderId is null here: the order never got persisted on the payment-decline path.
+        verify(compensationTaskWriter).recordFailure(eq(10L), eq(1), isNull(), anyString());
     }
 
     @Test
@@ -181,6 +190,22 @@ class OrderServiceTest {
 
         assertThat(result.getStatus()).isEqualTo(OrderStatus.CANCELLED);
         verify(productClient).restock(eq(10L), eq(2), anyString());
+    }
+
+    @Test
+    void cancel_restockFails_queuesCompensationTaskWithOrderId() {
+        OrderItem item = OrderItem.builder().productId(10L).quantity(2).build();
+        Order order = Order.builder().id(1L).userId(1L).status(OrderStatus.PAID)
+                .items(new ArrayList<>(List.of(item))).build();
+        when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
+        when(orderRepository.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(productClient.restock(eq(10L), eq(2), anyString())).thenThrow(new RuntimeException("product-service unreachable"));
+
+        Order result = orderService.cancel(1L, 1L);
+
+        // Cancel path: the order already exists, so orderId is set.
+        assertThat(result.getStatus()).isEqualTo(OrderStatus.CANCELLED);
+        verify(compensationTaskWriter).recordFailure(eq(10L), eq(2), eq(1L), anyString());
     }
 
     @Test

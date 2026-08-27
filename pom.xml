@@ -36,7 +36,6 @@
         <!-- 3.1.0 is the springdoc-openapi release whose own parent POM is
              spring-boot-starter-parent 4.1.0. -->
         <springdoc.version>3.1.0</springdoc.version>
-        <!-- 0.8.15 is the first release with official (not experimental) Java 25 support. -->
         <jacoco.version>0.8.15</jacoco.version>
     </properties>
 

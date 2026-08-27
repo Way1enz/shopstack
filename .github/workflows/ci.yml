@@ -62,12 +62,15 @@ jobs:
       # docker one build-push-action uses by default
       - uses: docker/setup-buildx-action@v4
 
-      # context is repo root: Dockerfiles need every pom.xml for the reactor
+      # context is repo root: Dockerfiles need every pom.xml for the reactor.
+      # Per-service scope: a scope shared across 7 concurrent matrix jobs risks one job's
+      # cache export overwriting another's.
       - name: Build ${{ matrix.service }} image
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: ${{ matrix.service }}/Dockerfile
+          file: Dockerfile
+          target: runtime-${{ matrix.service }}
           push: false
           tags: ecommerce/${{ matrix.service }}:ci
           cache-from: type=gha,scope=${{ matrix.service }}
