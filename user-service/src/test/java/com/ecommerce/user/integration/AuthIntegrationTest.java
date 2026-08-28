@@ -52,7 +52,7 @@ class AuthIntegrationTest {
                 .andExpect(jsonPath("$.token").isNotEmpty())
                 .andExpect(jsonPath("$.refreshToken").isNotEmpty());
 
-        // Confirms password is actually hashed, not stored as plaintext.
+        // Confirms password is hashed, not stored as plaintext.
         String storedPassword = userRepository.findByUsername("alice").orElseThrow().getPassword();
         assertThat(storedPassword).isNotEqualTo("Password123!");
         assertThat(storedPassword).startsWith("$2"); // BCrypt hash prefix

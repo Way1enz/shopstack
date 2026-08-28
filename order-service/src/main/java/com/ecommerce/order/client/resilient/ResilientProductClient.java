@@ -7,8 +7,8 @@ import io.github.resilience4j.retry.annotation.Retry;
 import org.springframework.stereotype.Component;
 
 // Instance name "product-service" matches application.yml. decrementStock/restock take
-// a caller-supplied idempotencyKey rather than generating one internally, since @Retry
-// re-invokes this method from scratch on every attempt. OrderService fixes the key once,
+// a caller-supplied idempotencyKey rather than generating one internally. @Retry
+// re-invokes this method from scratch on every attempt; OrderService fixes the key once,
 // before the first attempt.
 @Component
 public class ResilientProductClient {

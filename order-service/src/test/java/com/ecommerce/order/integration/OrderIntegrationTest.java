@@ -82,7 +82,7 @@ class OrderIntegrationTest {
                 .andExpect(jsonPath("$.paymentSummary").value("Cash"))
                 .andExpect(jsonPath("$.totalAmount").value(39.98));
 
-        // Confirms the order actually persisted, checking the database row directly.
+        // Confirms the order persisted, checking the database row directly.
         List<Order> persisted = orderRepository.findByUserIdOrderByCreatedAtDesc(userId);
         assertThat(persisted).hasSize(1);
         assertThat(persisted.get(0).getTotalAmount()).isEqualByComparingTo(new BigDecimal("39.98"));

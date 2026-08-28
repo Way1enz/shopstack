@@ -19,8 +19,8 @@ eureka:
       defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
   server:
     # Self-preservation guards against mass false-eviction during a peer network partition.
-    # Standalone single-node server, no peers to partition from; left on, it can mask
-    # genuinely dead instances after container churn (e.g. scaling a service down).
+    # Standalone single-node server with no peers. Left on, it masks dead instances after
+    # container churn such as scaling a service down.
     enable-self-preservation: false
 
 management:

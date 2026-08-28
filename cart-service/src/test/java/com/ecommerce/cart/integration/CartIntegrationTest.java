@@ -59,7 +59,7 @@ class CartIntegrationTest {
                 .andExpect(jsonPath("$.items[0].productId").value(10))
                 .andExpect(jsonPath("$.items[0].quantity").value(2));
 
-        // A separate GET after the POST, confirming the write actually landed in Redis.
+        // Separate GET after the POST, confirming the write landed in Redis.
         mockMvc.perform(get("/api/cart").header("X-User-Id", userId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].productName").value("Keyboard"));

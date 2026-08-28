@@ -29,7 +29,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-// Tracer/Propagator are mocked with deep stubs since the span-builder chain isn't the behavior under test here.
+// Tracer/Propagator are mocked with deep stubs. The span-builder chain is not the
+// behavior under test.
 @ExtendWith(MockitoExtension.class)
 class PendingMessageRecoveryJobTest {
 
@@ -55,8 +56,8 @@ class PendingMessageRecoveryJobTest {
         job = new PendingMessageRecoveryJob(redisTemplate, notificationService, tracer, propagator);
     }
 
-    // Only stubbed where a record is actually processed, so strict-stub tests that
-    // return early (empty/null/read-throws) don't fail on an unused stub.
+    // Only stubbed where a record is processed. Strict-stub tests that return early
+    // (empty/null/read-throws) don't fail on an unused stub.
     private void stubTracerSpanScope() {
         when(tracer.withSpan(any(Span.class))).thenReturn(() -> { });
     }
@@ -65,8 +66,8 @@ class PendingMessageRecoveryJobTest {
         return MapRecord.create("order-events", Map.of("orderId", orderId)).withId(RecordId.of(id));
     }
 
-    // Untyped any() cannot pick between StreamOperations' two overloaded read() methods; the
-    // typed matchers here resolve to the (Consumer, StreamReadOptions, StreamOffset...) overload.
+    // Untyped any() cannot pick between StreamOperations' two overloaded read() methods.
+    // Typed matchers here resolve to the (Consumer, StreamReadOptions, StreamOffset...) overload.
     private org.mockito.stubbing.OngoingStubbing<List<MapRecord<String, String, String>>> stubRead() {
         return when(streamOperations.read(any(Consumer.class), any(StreamReadOptions.class), any(StreamOffset.class)));
     }

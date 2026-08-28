@@ -24,7 +24,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-// Tracer/Propagator are mocked with deep stubs since the span-builder chain isn't the behavior under test here.
+// Tracer/Propagator are mocked with deep stubs. The span-builder chain is not the
+// behavior under test.
 @ExtendWith(MockitoExtension.class)
 class OrderEventListenerTest {
 

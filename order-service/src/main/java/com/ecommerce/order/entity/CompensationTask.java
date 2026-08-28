@@ -28,9 +28,9 @@ public class CompensationTask {
     private Long orderId;
 
     /**
-     * Same key as the originally failed restock call, reused on every retry so a retry that
-     * lands after an earlier attempt actually succeeded (response just got lost) is deduped
-     * by product-service's IdempotencyGuard instead of double-restocking.
+     * Same key as the originally failed restock call, reused on every retry. A retry that
+     * lands after an earlier attempt succeeded but lost its response is deduped by
+     * product-service's IdempotencyGuard instead of double-restocking.
      */
     @Column(nullable = false, length = 64)
     private String idempotencyKey;
