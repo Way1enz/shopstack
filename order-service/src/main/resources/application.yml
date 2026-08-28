@@ -44,6 +44,15 @@ payment:
   # failure path is testable.
   decline-above-amount: ${PAYMENT_DECLINE_ABOVE_AMOUNT:1000.00}
 
+order:
+  outbox:
+    poll-fixed-delay-ms: ${ORDER_OUTBOX_POLL_FIXED_DELAY_MS:5000}
+    poll-initial-delay-ms: ${ORDER_OUTBOX_POLL_INITIAL_DELAY_MS:10000}
+  compensation:
+    retry-fixed-delay-ms: ${ORDER_COMPENSATION_RETRY_FIXED_DELAY_MS:5000}
+    retry-initial-delay-ms: ${ORDER_COMPENSATION_RETRY_INITIAL_DELAY_MS:15000}
+    max-attempts: ${ORDER_COMPENSATION_MAX_ATTEMPTS:5}
+
 # Feign per-client timeouts. Resilience4j's TimeLimiter needs async returns, doesn't fit
 # blocking Feign calls, so the per-attempt time bound lives here instead.
 feign:
@@ -110,7 +119,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,circuitbreakers,retries
+        include: health,info,circuitbreakers,retries,compensationRecovery
   tracing:
     sampling:
       probability: 1.0

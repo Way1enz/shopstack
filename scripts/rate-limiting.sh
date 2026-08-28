@@ -29,6 +29,15 @@ done
   exit 1
 }
 
+# Confirms user-service itself is up, not just the gateway's route table, so the
+# early responses below are genuine 400s rather than 503s from a cold backend.
+for i in $(seq 1 12); do
+  STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE_URL/api/auth/login" \
+    -H "Content-Type: application/json" -d '{}')
+  [ "$STATUS" != "503" ] && break
+  sleep 5
+done
+
 # Bucket state persists in Redis between runs (keyed by IP), so the exact cutoff
 # point shifts if you rerun this before the bucket has had ~2s to refill. Printing
 # the remaining-token header makes that visible instead of the count looking random.

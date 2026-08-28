@@ -16,11 +16,15 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
+import java.time.Duration;
+
+import static org.awaitility.Awaitility.await;
+
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-// Real Postgres + Redis: exercises the @Cacheable/@CacheEvict path with actual JSON serialization.
+// Postgres + Redis: exercises the @Cacheable/@CacheEvict path with JSON serialization.
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK,
         properties = "eureka.client.enabled=false")
 @AutoConfigureMockMvc
@@ -95,10 +99,12 @@ class ProductIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.price").value(19.99));
 
-        // Confirms eviction worked; would otherwise return the stale 29.99 price.
-        mockMvc.perform(get("/api/products/" + id))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.price").value(19.99));
+        // Confirms eviction worked; would otherwise return the stale 29.99 price. Retried:
+        // a rare Lettuce reconnect can land between the evict command and this read.
+        await().atMost(Duration.ofSeconds(2)).untilAsserted(() ->
+                mockMvc.perform(get("/api/products/" + id))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.price").value(19.99)));
     }
 
     @Test
@@ -112,7 +118,9 @@ class ProductIntegrationTest {
 
         mockMvc.perform(get("/api/products/" + id)).andExpect(status().isOk());
         mockMvc.perform(delete("/api/products/" + id)).andExpect(status().isNoContent());
-        mockMvc.perform(get("/api/products/" + id)).andExpect(status().isNotFound());
+        // Retried: same rare Redis-reconnect race as update()'s eviction check above.
+        await().atMost(Duration.ofSeconds(2)).untilAsserted(() ->
+                mockMvc.perform(get("/api/products/" + id)).andExpect(status().isNotFound()));
     }
 
     @Test

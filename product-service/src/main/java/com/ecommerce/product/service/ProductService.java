@@ -94,7 +94,7 @@ public class ProductService {
             product.setStockQuantity(product.getStockQuantity() - quantity);
             return productRepository.save(product);
         } catch (RuntimeException failure) {
-            // Claim was premature: nothing was actually decremented, so a legitimate retry
+            // Claim was premature: nothing was decremented, so a legitimate retry
             // must not be told "already done".
             if (hasKey(idempotencyKey)) {
                 idempotencyGuard.release("decrement-stock:" + id, idempotencyKey);

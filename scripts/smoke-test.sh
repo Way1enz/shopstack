@@ -31,7 +31,12 @@ CODE=$(curl -sL -o /dev/null -w "%{http_code}" "$BASE_URL/swagger-ui.html")
 pass "swagger-ui.html -> 200"
 
 for svc in user product cart order; do
-    CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/${svc}-service/v3/api-docs")
+    CODE=""
+    for i in $(seq 1 12); do
+        CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/${svc}-service/v3/api-docs")
+        [ "$CODE" = "200" ] && break
+        sleep 5
+    done
     [ "$CODE" = "200" ] || fail "${svc}-service docs returned $CODE, expected 200"
 done
 pass "all 4 docs proxy routes -> 200"

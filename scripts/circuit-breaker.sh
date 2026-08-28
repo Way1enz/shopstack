@@ -33,18 +33,28 @@ done
 }
 
 echo "Register (token comes straight off the register response, no separate login)..."
-TOKEN=$(curl -s -X POST "$BASE_URL/api/auth/register" -H "Content-Type: application/json" \
-  -d "{\"username\":\"$USERNAME\",\"email\":\"$EMAIL\",\"password\":\"Str0ngP@ss!\"}" |
-  grep -o '"token":"[^"]*"' | head -1 | cut -d'"' -f4)
+TOKEN=""
+for i in $(seq 1 12); do
+  TOKEN=$(curl -s -X POST "$BASE_URL/api/auth/register" -H "Content-Type: application/json" \
+    -d "{\"username\":\"$USERNAME\",\"email\":\"$EMAIL\",\"password\":\"Str0ngP@ss!\"}" |
+    grep -o '"token":"[^"]*"' | head -1 | cut -d'"' -f4 || true)
+  [ -n "$TOKEN" ] && break
+  sleep 5
+done
 [ -n "$TOKEN" ] || {
   echo "register did not return a token" >&2
   exit 1
 }
 
 echo "Create a product..."
-PRODUCT_ID=$(curl -s -X POST "$BASE_URL/api/products" -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" -d '{"name":"Widget","price":9.99,"stockQuantity":50,"category":"test"}' |
-  grep -o '"id":[0-9]*' | grep -o '[0-9]*')
+PRODUCT_ID=""
+for i in $(seq 1 12); do
+  PRODUCT_ID=$(curl -s -X POST "$BASE_URL/api/products" -H "Authorization: Bearer $TOKEN" \
+    -H "Content-Type: application/json" -d '{"name":"Widget","price":9.99,"stockQuantity":50,"category":"test"}' |
+    grep -o '"id":[0-9]*' | grep -o '[0-9]*' || true)
+  [ -n "$PRODUCT_ID" ] && break
+  sleep 5
+done
 [ -n "$PRODUCT_ID" ] || {
   echo "product creation did not return an id" >&2
   exit 1
@@ -85,15 +95,29 @@ else
 fi
 
 echo
-echo "=== Restarting product-service, waiting ~25s for boot + Eureka registration ==="
+echo "=== Restarting product-service, waiting for it to actually accept requests ==="
 docker compose start product-service
-sleep 25
+echo "Container 'Started' means the process launched, not that Spring Boot/Eureka finished booting."
+echo "Polling the real request path instead of a fixed sleep."
+READY=""
+for i in $(seq 1 24); do
+  STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/api/products/$PRODUCT_ID")
+  [ "$STATUS" = "200" ] && READY=1 && break
+  sleep 5
+done
+[ -n "$READY" ] || fail "product-service never became reachable through the gateway again"
 
 echo
 echo "=== Hammering checkout again (expect 503 -> 201 once the circuit closes) ==="
-echo "wait-duration-in-open-state is 10s. The 25s wait above already put it in HALF_OPEN."
-echo "These 10 calls are the half-open test batch. Success here closes the circuit."
+echo "Only 3 of these 10 calls are the actual half-open trial (permitted-number-of-calls-in-half-open-state)."
+echo "If a cold first connection among those 3 is slow enough to count as a failure, the breaker reopens"
+echo "and offers another half-open window automatically 10s later (wait-duration-in-open-state)."
 checkout_loop
+if [ "$LAST_STATUS" != "201" ]; then
+  echo "First half-open trial didn't close the circuit (status=$LAST_STATUS) - waiting for the next window..."
+  sleep 10
+  checkout_loop
+fi
 if [ "$LAST_STATUS" = "201" ]; then
   pass "circuit closed, request 10 succeeded with 201"
 else

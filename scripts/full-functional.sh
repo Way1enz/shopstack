@@ -34,8 +34,13 @@ pass "gateway routes bound"
 echo
 echo "=== Auth: register -> login -> refresh -> logout ==="
 
-REGISTER_RESPONSE=$(curl -s -X POST "$BASE_URL/api/auth/register" -H "Content-Type: application/json" \
-  -d "{\"username\":\"$USERNAME\",\"email\":\"$EMAIL\",\"password\":\"$PASSWORD\"}")
+REGISTER_RESPONSE=""
+for i in $(seq 1 12); do
+  REGISTER_RESPONSE=$(curl -s -X POST "$BASE_URL/api/auth/register" -H "Content-Type: application/json" \
+    -d "{\"username\":\"$USERNAME\",\"email\":\"$EMAIL\",\"password\":\"$PASSWORD\"}")
+  echo "$REGISTER_RESPONSE" | grep -q '"token"' && break
+  sleep 5
+done
 echo "$REGISTER_RESPONSE" | grep -q '"token"' || fail "register did not return a token: $REGISTER_RESPONSE"
 pass "register -> token issued"
 

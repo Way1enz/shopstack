@@ -37,7 +37,7 @@ eureka:
 
 jwt:
   secret: ${JWT_SECRET:change-this-super-secret-key-min-32-chars-long}
-  # Access tokens are short-lived (15 min) since they're stateless and can't be revoked.
+  # Access tokens are short-lived: 15 minutes, stateless, not revocable.
   # Long-lived sessions are handled by the separate, revocable refresh token below.
   expiration-ms: ${JWT_EXPIRATION_MS:900000}
   # Refresh tokens are opaque DB-backed strings (see RefreshToken entity),

@@ -28,8 +28,16 @@ done
   exit 1
 }
 
-REGISTER_RESP=$(curl -s -w '\n%{http_code}' -X POST "$BASE_URL/api/auth/register" -H "Content-Type: application/json" \
-  -d "{\"username\":\"$USERNAME\",\"email\":\"$EMAIL\",\"password\":\"Password123!\"}")
+REGISTER_RESP=""
+for i in $(seq 1 12); do
+  REGISTER_RESP=$(curl -s -w '\n%{http_code}' -X POST "$BASE_URL/api/auth/register" -H "Content-Type: application/json" \
+    -d "{\"username\":\"$USERNAME\",\"email\":\"$EMAIL\",\"password\":\"Password123!\"}")
+  REGISTER_STATUS=$(echo "$REGISTER_RESP" | tail -1)
+  if [ "$REGISTER_STATUS" = "200" ] || [ "$REGISTER_STATUS" = "201" ]; then
+    break
+  fi
+  sleep 5
+done
 REGISTER_STATUS=$(echo "$REGISTER_RESP" | tail -1)
 REGISTER_BODY=$(echo "$REGISTER_RESP" | sed '$d')
 TOKEN=$(echo "$REGISTER_BODY" | grep -o '"token":"[^"]*"' | head -1 | cut -d'"' -f4 || true)

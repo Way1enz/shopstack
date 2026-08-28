@@ -7,8 +7,7 @@ import java.time.Duration;
 import java.time.Instant;
 
 // Backs decrementStock/restock against a retried call that succeeded but whose response
-// was lost: claim() is an atomic Redis SETNX per Idempotency-Key, so the first caller
-// proceeds and every retry after it is told it's a duplicate.
+// was lost: claim() is an atomic Redis SETNX per Idempotency-Key.
 @Component
 public class IdempotencyGuard {
 

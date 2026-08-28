@@ -14,6 +14,12 @@ Clone the repo, then from the project root:
 docker compose up --build
 ```
 
+This attaches to the stack, streaming every container's logs to your terminal; Ctrl-C stops everything. To free up the terminal instead, run it detached in the background:
+```bash
+docker compose up --build -d
+```
+Check on it anytime with `docker compose ps`, or `docker compose logs -f` (add a service name to follow just one, e.g. `docker compose logs -f order-service`).
+
 Starts Postgres and Redis, then Eureka, then every service, then the gateway last.
 
 - Discovery Server (Eureka): <http://localhost:8761>
@@ -27,7 +33,7 @@ ln -sfn "$(brew --prefix docker-buildx)/bin/docker-buildx" ~/.docker/cli-plugins
 docker buildx version
 ```
 
-To shut it down, press Ctrl-C, or run one of the following commands in another terminal:
+To shut it down, press Ctrl-C (skip this if you started detached with `-d`), or run one of the following commands in another terminal:
 ```bash
 docker compose down      # stop, keep data
 docker compose down -v   # stop and wipe all data

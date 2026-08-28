@@ -9,8 +9,7 @@ import java.net.InetSocketAddress;
 
 // Bean name "rateLimiterKeyResolver" is referenced from application.yml as
 // "#{@rateLimiterKeyResolver}". Rate-limits per user where possible, falling back to IP for
-// routes AuthFilter never touches. AuthFilter must be listed first on any route with both,
-// so X-User-Id is on the request by the time this runs.
+// routes AuthFilter never touches. AuthFilter must be listed first on any route with both.
 @Component
 public class RateLimiterKeyResolver implements KeyResolver {
 

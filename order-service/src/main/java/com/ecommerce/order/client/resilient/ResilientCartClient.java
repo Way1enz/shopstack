@@ -9,8 +9,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 // Instance name "cart-service" matches the circuitbreaker/retry keys in application.yml.
-// Kept separate from OrderService so @CircuitBreaker/@Retry actually get AOP-proxied.
-// Calling an annotated method on `this` bypasses the proxy and silently skips resilience.
+// Kept separate from OrderService so @CircuitBreaker/@Retry get AOP-proxied: an annotated
+// method called on `this` bypasses the proxy.
 @Component
 public class ResilientCartClient {
 

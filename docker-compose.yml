@@ -63,7 +63,8 @@ services:
   eureka-server:
     build:
       context: .
-      dockerfile: eureka-server/Dockerfile
+      dockerfile: Dockerfile
+      target: runtime-eureka-server
     ports:
       - "8761:8761"
     mem_limit: 512m
@@ -83,7 +84,8 @@ services:
   user-service:
     build:
       context: .
-      dockerfile: user-service/Dockerfile
+      dockerfile: Dockerfile
+      target: runtime-user-service
     mem_limit: 768m
     environment:
       JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0"
@@ -110,7 +112,8 @@ services:
   product-service:
     build:
       context: .
-      dockerfile: product-service/Dockerfile
+      dockerfile: Dockerfile
+      target: runtime-product-service
     mem_limit: 768m
     environment:
       JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0"
@@ -138,7 +141,8 @@ services:
   cart-service:
     build:
       context: .
-      dockerfile: cart-service/Dockerfile
+      dockerfile: Dockerfile
+      target: runtime-cart-service
     mem_limit: 512m
     environment:
       JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0"
@@ -159,7 +163,8 @@ services:
   order-service:
     build:
       context: .
-      dockerfile: order-service/Dockerfile
+      dockerfile: Dockerfile
+      target: runtime-order-service
     mem_limit: 768m
     environment:
       JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0"
@@ -188,7 +193,8 @@ services:
   notification-service:
     build:
       context: .
-      dockerfile: notification-service/Dockerfile
+      dockerfile: Dockerfile
+      target: runtime-notification-service
     ports:
       - "8085:8085"
     mem_limit: 512m
@@ -211,7 +217,8 @@ services:
   api-gateway:
     build:
       context: .
-      dockerfile: api-gateway/Dockerfile
+      dockerfile: Dockerfile
+      target: runtime-api-gateway
     ports:
       - "8080:8080"
     mem_limit: 768m
