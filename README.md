@@ -11,14 +11,9 @@ If your local machine doesn't have Docker installed, follow [Docker's install gu
 
 Clone the repo, then from the project root:
 ```bash
-docker compose up --build
-```
-
-This attaches to the stack, streaming every container's logs to your terminal; Ctrl-C stops everything. To free up the terminal instead, run it detached in the background:
-```bash
 docker compose up --build -d
 ```
-Check on it anytime with `docker compose ps`, or `docker compose logs -f` (add a service name to follow just one, e.g. `docker compose logs -f order-service`).
+Build output streams to your terminal, then it detaches. Check on it anytime with `docker compose ps`, or `docker compose logs -f` (add a service name to follow just one, e.g. `docker compose logs -f order-service`).
 
 Starts Postgres and Redis, then Eureka, then every service, then the gateway last.
 
@@ -33,7 +28,7 @@ ln -sfn "$(brew --prefix docker-buildx)/bin/docker-buildx" ~/.docker/cli-plugins
 docker buildx version
 ```
 
-To shut it down, press Ctrl-C (skip this if you started detached with `-d`), or run one of the following commands in another terminal:
+To shut it down:
 ```bash
 docker compose down      # stop, keep data
 docker compose down -v   # stop and wipe all data
@@ -59,7 +54,7 @@ docker compose up --scale product-service=1 --no-recreate -d
 - **user-service**: registration, login, JWT issuance, refresh tokens.
 - **product-service**: product catalog, Redis as a cache in front of Postgres.
 - **cart-service**: shopping cart, Redis as the only datastore.
-- **order-service**: checkout, order history, publishes order events to Redis Streams.
+- **order-service**: checkout, order history, publishes order events to Redis Streams via a transactional outbox.
 - **notification-service**: consumes order events, no client-facing REST API. Its actuator port is exposed to the host for ops access.
 - **api-gateway**: single entry point, routing, JWT validation.
 - **eureka-server**: service registry.
@@ -71,13 +66,15 @@ Aggregated Swagger UI at the gateway: <http://localhost:8080/swagger-ui.html>. D
 ## Observability
 
 - **Distributed tracing**: Zipkin + Micrometer Tracing (Brave) across every service. Zipkin UI: <http://localhost:9411>.
-- **Async trace propagation**: HTTP/Feign hops get trace context for free. The Redis Streams hop (`order-service` to `notification-service`) doesn't, so context is manually injected on publish and extracted on consume; see `event/OrderEventPublisher.java` and `tracing/OrderEventTracing.java`. A redelivered message from crash recovery continues the same trace as a tagged child span rather than starting a disconnected one.
+- **Async trace propagation**: HTTP/Feign hops get trace context for free. The Redis Streams hop (`order-service` to `notification-service`) doesn't, so context is manually injected on publish and extracted on consume; see `event/OrderEventPublisher.java` and `tracing/OrderEventTracing.java`. A redelivered message from crash recovery continues the same trace as a tagged child span rather than starting a disconnected one. api-gateway also enables `Hooks.enableAutomaticContextPropagation()`. WebFlux doesn't carry tracing context across async boundaries by default.
 - **On-demand crash recovery**: `notification-service`'s pending-message recovery job runs on a schedule, or immediately via `POST http://localhost:8085/actuator/orderEventRecovery`.
 
 ## Resilience
 
 - **order-service to cart-service/product-service (Feign)**: circuit breaker plus retry (Resilience4j) with connect/read timeouts, per client. An open circuit fails fast and skips retries. See `client/resilient/` and `application.yml`.
 - **Gateway rate limiting**: Redis-backed token bucket per route, keyed by user id, falling back to IP for public routes. See `RateLimiterKeyResolver` and `application.yml`.
+- **Transactional outbox**: order-service writes an outbox row in the same transaction as the order. A checkout can't commit while the event publish silently fails. A scheduled poller drains pending rows to Redis Streams. See `event/OutboxEventWriter.java` and `event/OutboxEventPoller.java`.
+- **Compensation retry**: a payment decline that needs to restock a product persists a compensation task, which survives the rollback and retries on a schedule against the same idempotency key. A lost response is deduped rather than double-restocked. Tasks stuck past `order.compensation.max-attempts` show up via `GET http://localhost:8084/actuator/compensationRecovery`; `POST` triggers a retry scan on demand.
 
 ## Architecture
 
@@ -94,7 +91,8 @@ flowchart TD
     order -->|Feign| product
     order -->|Feign| cart
 
-    order -.->|publishes, fire-and-forget| stream[("Redis Stream<br/>order-events")]
+    order -.->|writes row, same tx| outbox[("outbox_event table<br/>Postgres")]
+    outbox -.->|poller drains, publishes| stream[("Redis Stream<br/>order-events")]
     stream -.->|consumer group| notification["notification-service :8085<br/>no client API, actuator exposed"]
 
     eureka{{"eureka-server :8761<br/>service registry"}}
