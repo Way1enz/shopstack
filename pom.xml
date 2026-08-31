@@ -27,7 +27,7 @@
         <maven.compiler.target>25</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spring-boot.version>4.1.1</spring-boot.version>
-        <spring-cloud.version>2025.1.2</spring-cloud.version>
+        <spring-cloud.version>2025.1.3</spring-cloud.version>
         <jjwt.version>0.13.0</jjwt.version>
         <!-- io.github.resilience4j:resilience4j-spring-boot4: the boot3-named module isn't
              compatible with the Spring Boot 4 line. boot4 is a separate artifact that tracks
