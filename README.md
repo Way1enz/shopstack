@@ -108,7 +108,7 @@ Solid arrows are synchronous HTTP/Feign calls; dashed arrows are async. Every se
 
 ## Tech stack
 
-- Java 25 (virtual threads enabled), Spring Boot 4.1.1, Spring Cloud 2025.1.2
+- Java 25 (virtual threads enabled), Spring Boot 4.1.x, Spring Cloud 2025.1.x
 - Resilience4j (circuit breaker, retry) on order-service's Feign clients; Redis rate limiting on the gateway
 - Micrometer Tracing plus Zipkin (Brave): distributed tracing across every service, including manual propagation over the Redis Streams hop
 - Spring Data JPA + PostgreSQL, schema managed with Flyway
